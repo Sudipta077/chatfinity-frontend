@@ -10,6 +10,13 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        mygreen:"var(--mygreen)",
+        myblue:"var(--myblue)",
+        myblack:"var(--myblack)",
+
+      },
+      fontFamily: {
+        rubik: ["rubik"],
       },
     },
   },
