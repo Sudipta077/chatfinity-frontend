@@ -1,11 +1,16 @@
 'use client'
-import Message from "./components/Message";
-import { useState } from "react";
-
+import { signOut } from "next-auth/react";
+import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
+import Header from "./components/Header";
 export default function Home() {
-  const [message, setMessage] = useState("sudipta");
+
+  const {data:session} = useSession();
+  console.log(session);
+
   return (
     <>
+      <Header/>
        
     </>
   );
