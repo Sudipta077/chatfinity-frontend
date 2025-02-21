@@ -13,7 +13,8 @@ export default {
         mygreen:"var(--mygreen)",
         myblue:"var(--myblue)",
         myblack:"var(--myblack)",
-
+        myyellow:'var(--myyellow)',
+        textcolor:'var(--text)'
       },
       fontFamily: {
         rubik: ["rubik"],

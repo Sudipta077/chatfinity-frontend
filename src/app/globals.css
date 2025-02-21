@@ -11,7 +11,8 @@
   --mygreen: #16C47F;
   --foreground: #F7F7F7;
   --myblack: #151515;
-  --color: #1A1A1D;
+  --text: #303841;
+  --myyellow: #FFB22C;
 
 }
 
@@ -21,9 +22,21 @@
     --myblue: #5AB2FF;
     --mygreen: #16C47F;
     --foreground: #3D3B40;
-    --color: #EEEEEE;
+    --text: #181C14;
+    --myyellow: #FFB22C;
+
 
   }
+}
+
+.dark {
+  --foreground: #151515;
+  /* --background: #151515; */
+  --myblue: #5AB2FF;
+  --mygreen: #16C47F;
+  --background: #3D3B40;
+  --text: #D0D4CA;
+  --myyellow: #FFB22C;
 }
 
 body {
