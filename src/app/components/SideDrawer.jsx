@@ -42,12 +42,12 @@ function SideDrawer() {
                     setSearchUser(data);
                     setIsEmpty(false);
                     setLoading(false);                    
-                }, 2000);
+                }, 1000);
             } else {
                 setTimeout(() => {
                     setLoading(false);                    
                     setIsEmpty(true);
-                }, 2000);
+                }, 1000);
             }
         } catch (err) {
             toast.error("Error occurred!");

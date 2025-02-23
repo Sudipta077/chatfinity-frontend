@@ -8,8 +8,9 @@ import chat3 from '../../../public/chat3.png';
 function ChatDefault() {
     return (
         <div className="grid bg-background w-3/4 place-content-center">
-            <div className="card w-fit ">
-                <div className="loader w-full">
+            <h1 className='text-center text-2xl text-textcolor font-bold'>Secured • Lightweight • Easy</h1>
+            <div className="card">
+                <div className="loader">
                     <div className="images-container">
                         <div className="image-slide"><Image src={chat1} alt="chat1" className="image" /></div>
                         <div className="image-slide"><Image src={chat2} alt="chat2" className="image" /></div>
