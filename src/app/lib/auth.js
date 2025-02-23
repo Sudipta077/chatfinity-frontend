@@ -48,7 +48,7 @@ export const authOptions = {
 
           });
 
-          console.log("profile-------->", response);
+          // console.log("profile-------->", response);
           if (response.data.token) {
             return {
               id: response.data.userId,

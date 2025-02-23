@@ -6,7 +6,7 @@ import ChatPage from "./components/ChatPage";
 export default function Home() {
 
 	const { data: session } = useSession();
-	console.log(session);
+	// console.log(session);
 
 	return (
 		<div className="bg-background flex-1">

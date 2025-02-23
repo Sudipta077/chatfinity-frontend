@@ -9,11 +9,11 @@ import ChatDefault from './ChatDefault.jsx';
 function ChatPage() {
     const user = useAppSelector((state) => state.user);
 
-    if (!user?.id) {
-        console.log("No user");
-    } else {
-        console.log(user);
-    }
+    // if (!user?.id) {
+    //     console.log("No user");
+    // } else {
+    //     console.log(user);
+    // }
 
     return (
         <>

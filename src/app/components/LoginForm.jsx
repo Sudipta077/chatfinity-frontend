@@ -69,7 +69,7 @@ export default function LoginForm() {
                 throw new Error(result.error);
             }
             if (result.ok) {
-                console.log(result)
+                // console.log(result)
                 setLoading(false);
                 toast.success("Login successful!");
                 router.push('/');

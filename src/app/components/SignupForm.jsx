@@ -33,7 +33,7 @@ function SignupForm(props) {
         },
         validationSchema,
         onSubmit: async (values) => {
-            console.log(values);
+            // console.log(values);
 
             try {
                 const result = await axios.post('http://localhost:8080/user/signup', values);
