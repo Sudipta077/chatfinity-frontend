@@ -12,10 +12,11 @@ export default function Home() {
 		<div className="bg-background flex-1">
 			<Header />
 
-			<div className="shadow-xl bg-foreground flex overflow-auto md:m-3 p-2 gap-2 max-h-screen rounded">
-					<ChatList/>
-					<ChatPage/>
-            </div>
+			<div className="shadow-xl bg-foreground flex overflow-hidden md:m-3 p-2 gap-2 h-screen rounded">
+				<ChatList />
+				<ChatPage />
+			</div>
+
 
 		</div>
 	);

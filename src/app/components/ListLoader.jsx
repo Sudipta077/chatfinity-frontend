@@ -49,6 +49,8 @@ function ListLoader(props) {
                     <div className="animate-pulse bg-gray-300 w-72 h-5 rounded-full"></div>
                 </div>
             </div>
+            
+            
 
         </div>
     );

@@ -35,12 +35,12 @@
   position: absolute;
   inset: 0;
   z-index: 10;
-  /* background: linear-gradient(
+  background: linear-gradient(
     var(--bg-color) 10%,
     transparent 30%,
     transparent 70%,
     var(--bg-color) 90%
-  ); */
+  );
 }
 
 .image-slide {
