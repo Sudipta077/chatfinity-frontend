@@ -27,10 +27,12 @@ function ListItems({ item, token }) {
             console.log("result----->", result);
 
             dispatch(setUser({
-                name: item.users ? item.users[0].name : item.name,
+                name: item.users ? item.chatName : item.name,
                 email: item.users ? item.users[0].email : item.email,
                 picture: item.users ? item.users[0].picture : item.picture,
-                id: item.users ? item.users[0]._id : item._id
+                id: item.users ? item.users[0]._id : item._id,
+                members:item.users? item.users:[],
+                isGroupChat : item.isGroupChat
             }))
 
             if (!item.users) {
@@ -54,7 +56,7 @@ function ListItems({ item, token }) {
             </div>
 
             <div className='w-[60%] text-left m-auto'>
-                <p className='text-textcolor group-hover:text-myblack'>{item.users ? item.users[0].name : item.name}</p>
+                <p className='text-textcolor group-hover:text-myblack'>{item.chatName ? item.chatName : item.name}</p>
                 {item?.sender?.content && <p className='text-textcolor overflow-hidden text-md h-6'>{item.content}...</p>}
             </div>
 

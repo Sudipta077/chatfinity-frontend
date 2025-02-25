@@ -1,44 +1,86 @@
 'use client'
+import axios from 'axios';
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { IoClose } from "react-icons/io5";
-
+import { useAppDispatch } from '@/lib/hooks/hook';
+import { fetchChats } from '@/lib/features/chats/chatSlice';
 function GroupCreate({ token, onShow, users }) {
     const [selected, setSelected] = useState([]);
-
-    console.log("users from group --->", users);
+    const [name,setName] = useState("");
+    const dispatch = useAppDispatch();
+    // console.log("users from group --->", users);
 
     // Function to add a user to the selected list
     const handleSelectUser = (item) => {
         const userId = item.users[0]?._id;
 
-        // Check if the user is already in the selected list
         if (!selected.some((user) => user.users[0]?._id === userId)) {
             setSelected((prev) => [...prev, item]);
         }
     };
 
-    // Function to remove a user from the selected list
+  
     const handleRemoveUser = (userId) => {
         setSelected((prev) => prev.filter((user) => user.users[0]?._id !== userId));
     };
 
+
+    const handleSubmit=async(e)=>{
+        e.preventDefault();
+        if(selected.length<2){
+            toast.error("Select more than 2 members.");
+            return;
+        }
+        else if(name==""){
+            toast.error("Group name is empty.")
+            return;
+        }
+        else{
+
+            try{
+                let userIds=[];
+                selected.forEach((elem)=>userIds.push(elem.users[0]._id));             
+                const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat/group`,{
+                    name:name.trim(),
+                    users:userIds
+                },{
+                    headers:{
+                        Authorization:`Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    }
+                })
+    
+                console.log("result after group--->",result);
+                dispatch(fetchChats({token}));
+                onShow();
+            }
+            catch(err){
+                toast.error("Error Occurred");
+                console.log(err);
+            }
+           
+        }
+    }
+
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-background p-5 rounded-lg shadow-lg flex-col items-center justify-center w-[500px] overflow-y-auto max-h-[500px]">
-                {/* Close Modal Button */}
+             
                 <IoClose className='text-2xl text-textcolor float-right hover:cursor-pointer hover:bg-background bg-opacity-55' onClick={onShow} />
 
                 <h1 className='text-center text-textcolor text-xl'>Create Group</h1>
-                <form action="" className='flex-col flex'>
-                    {/* Group Name Input */}
-                    <input type="text" id='name' name='name' placeholder='Group Name' 
+                <form action="" className='flex-col flex' onSubmit={handleSubmit}>
+                 
+                    <input type="text" id='name' name='name' onChange={(e)=>setName(e.target.value)} placeholder='Group Name' 
                         className='focus:outline-none bg-foreground text-textcolor text-xl px-2 py-1 rounded placeholder:font-light mt-5' 
                     />
 
-                    {/* Search for Members */}
+           
                     <div className="w-full max-w-xs mt-5">
                         <div className="flex-col">
-                            {/* Members Dropdown */}
+                      
                             <div className="mt-2 relative inline-flex items-center px-3 py-2 bg-foreground rounded-l-md w-full">
                                 <select
                                     className="appearance-none focus:outline-none text-sm text-textcolor w-full px-2 bg-foreground"
@@ -62,7 +104,7 @@ function GroupCreate({ token, onShow, users }) {
                         </div>
                     </div>
 
-                    {/* Display Selected Members */}
+
                     {selected.length > 0 && (
                         <div className="mt-4">
                             <h2 className="text-textcolor text-lg font-semibold">Selected Members:</h2>
@@ -79,11 +121,11 @@ function GroupCreate({ token, onShow, users }) {
                             </div>
                         </div>
                     )}
-
-                    {/* Submit Button */}
+            
                     <button type='submit' className='bg-mygreen px-3 py-2 mt-5 rounded text-myblack text-xl'>
                         Create
                     </button>
+
                 </form>
             </div>
         </div>

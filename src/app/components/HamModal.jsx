@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { signOut } from "next-auth/react";
 import toast from "react-hot-toast";
 import Image from 'next/image';
+import ProfileModal from './ProfileModal';
 
 function HamModal({ user }) {
     const [showProfile, setShowProfile] = useState(false);
@@ -83,14 +84,7 @@ function HamModal({ user }) {
             </div>
 
             {showProfile &&
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-background h-72 w-72 p-5 rounded-lg shadow-lg">
-                        <Image src={user?.user?.pic} width={100} height={100} alt='image' className='rounded-full m-auto'></Image>
-                        <h1 className='text-textcolor mt-5 text-2xl text-center'>{user?.user?.name}</h1>
-                        <h1 className='text-textcolor mt-5 text-md text-center'>{user?.user?.email}</h1>
-                        <button onClick={toggleShow} className='mt-5 float-right bg-mygreen px-5 py-2 rounded border-b border-b-green-700'>OK</button>
-                    </div>
-                </div>
+               <ProfileModal user={user} toggleShow={toggleShow}/>
             }
         </div>
     );

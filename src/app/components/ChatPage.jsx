@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { messages } from '../data/users.js';
 import { useAppSelector } from '../../lib/hooks/hook.js';
 import { IoSend } from "react-icons/io5";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import ChatDefault from './ChatDefault.jsx';
-
+import ChatPageModal from './ChatPageModal.jsx';
 function ChatPage() {
     const user = useAppSelector((state) => state.user);
-
+    const[showModal,setShowModal] = useState(false);
 
     return (
         <>
             { !user?.id ? ( 
                 <ChatDefault />
             ) : (
-                <div className="w-3/4 max-h-screen relative">
+                <div className="w-3/4 max-h-screen relative border-l-[2px] border-myyellow">
                     {/* Chat Header */}
                     <div className="h-16 bg-myyellow w-full px-5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -23,7 +23,7 @@ function ChatPage() {
                             <h2 className="text-[#303841] font-medium text-3xl">{user.name}</h2>
                         </div>
 
-                        <button>
+                        <button onClick={()=>setShowModal(!showModal)}>
                             <BsThreeDotsVertical className="text-2xl text-[#303841]" />
                         </button>
                     </div>
@@ -48,6 +48,14 @@ function ChatPage() {
                             <IoSend className="text-4xl hover:cursor-pointer text-myyellow bg-background" />
                         </button>
                     </div>
+
+                    {
+                        showModal && 
+                       <ChatPageModal/>
+                    }
+
+
+
                 </div>
             )}
         </>

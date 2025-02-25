@@ -1,10 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { act } from 'react'
+import { boolean } from 'yup'
 
 const initialState = {
   name:"",
   email:"",
   picture:"",
-  id:""
+  id:"",
+  members:[],
+  isGroupChat:false
 }
 
 export const userSlice = createSlice({
@@ -17,7 +21,8 @@ export const userSlice = createSlice({
       state.email = action.payload.email
       state.id = action.payload.id
       state.picture = action.payload.picture
-
+      state.members = action.payload.members
+      state.isGroupChat = action.payload.isGroupChat
     },
   },
 })

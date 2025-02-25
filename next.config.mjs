@@ -1,8 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    images: {
-        domains: ['icon-library.com','lh3.googleusercontent.com','static.vecteezy.com'], // Add the domain of your image source
+  images: {
+
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'icon-library.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.vecteezy.com',
+      },
+    ],
+
+  },
 
 };
 
