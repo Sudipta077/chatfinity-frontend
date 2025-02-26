@@ -24,7 +24,7 @@ function ChatList(props) {
     const dispatch = useAppDispatch();
     const user = useAppSelector((state) => state.chat);
     
-    console.log("data set from chat-->", user);
+    // console.log("data set from chat-->", user);
     const token = session?.user?.token;
 
     const onSearch = (name) => {

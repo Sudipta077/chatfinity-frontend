@@ -1,3 +1,4 @@
+// 'use client'
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { messages } from '../data/users.js';
@@ -6,10 +7,11 @@ import { IoSend } from "react-icons/io5";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import ChatDefault from './ChatDefault.jsx';
 import ChatPageModal from './ChatPageModal.jsx';
+import { useSession } from 'next-auth/react';
 function ChatPage() {
     const user = useAppSelector((state) => state.user);
     const[showModal,setShowModal] = useState(false);
-
+    const{data:session} = useSession();
     return (
         <>
             { !user?.id ? ( 

@@ -93,7 +93,7 @@ function GroupCreate({ token, onShow, users }) {
                                 >
                                     <option value="" className='text-textcolor px-2'>Select a user</option>
                                     {
-                                        users && users.map((item, key) => (
+                                        users && users.slice().filter((item)=>!item.isGroupChat).map((item, key) => (
                                             <option key={key} value={item.users[0]?._id} className='text-textcolor px-2'>
                                                 {item.users[0]?.name}
                                             </option>

@@ -30,7 +30,7 @@ function ListItems({ item, token }) {
                 name: item.users ? item.chatName : item.name,
                 email: item.users ? item.users[0].email : item.email,
                 picture: item.users ? item.users[0].picture : item.picture,
-                id: item.users ? item.users[0]._id : item._id,
+                id:  item._id,
                 members:item.users? item.users:[],
                 isGroupChat : item.isGroupChat
             }))
