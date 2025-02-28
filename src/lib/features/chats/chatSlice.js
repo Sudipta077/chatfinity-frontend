@@ -4,7 +4,10 @@ import axios from "axios";
 // ✅ Accepts token as an argument
 export const fetchChats = createAsyncThunk(
     "chat/fetchChats",
+
+    
     async ({ token }) => {
+        // console.log("Token of meee--->",token);
         const result = await axios.get(`${process.env.NEXT_PUBLIC_URL}/chat`, {
             headers: {
                 Authorization: `Bearer ${token}`

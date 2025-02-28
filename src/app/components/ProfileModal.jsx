@@ -11,11 +11,11 @@ import { useSession } from 'next-auth/react';
 import { fetchChats } from '@/lib/features/chats/chatSlice';
 import { IoClose } from "react-icons/io5";
 import { setUser } from '@/lib/features/users/userSlice';
-function ProfileModal({ toggleShow }) {
+function ProfileModal({ toggleShow, profile }) {
     const user2 = useAppSelector((state) => state.user);
     const user = useAppSelector((state) => state.chat);
     const { data: session } = useSession();
-    const [name, setName] = useState(user2.name);
+    const [name, setName] = useState(profile.name?profile.name:profile.user.name);
     const [show, setShow] = useState(false);
     const [add, setAdd] = useState(false);
     const [selected, setSelected] = useState([]);
@@ -171,12 +171,14 @@ function ProfileModal({ toggleShow }) {
     }
 
 
+    console.log("profile--->",profile);
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="max-h-[500px] bg-background justify-center w-[500px] p-5 rounded-lg shadow-lg overflow-auto">
 
 
-                <Image src={user2.picture} width={100} height={100} alt='image' className='rounded-full m-auto' />
+                <Image src={profile.picture ? profile.picture : profile.user.pic } width={100} height={100} alt='image' className='rounded-full m-auto' />
 
 
                 {
@@ -205,10 +207,9 @@ function ProfileModal({ toggleShow }) {
                 }
 
 
+                <h1 className="text-textcolor mt-3 text-md text-center">{profile.email?profile.email:profile.user.email}</h1>
 
-                <h1 className="text-textcolor mt-3 text-md text-center">{user2.email}</h1>
-
-                {user2.isGroupChat && user2.members.map((item, key) => (
+                {!profile.user && user2.isGroupChat && user2.members.map((item, key) => (
                     <div key={key} className="flex items-center h-16 justify-start bg-myyellow rounded mt-2 px-2 py-1">
                         <div className="w-1/4">
                             <Image src={item.picture} width={50} height={50} alt='image' className='rounded-full m-auto' />

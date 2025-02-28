@@ -72,10 +72,10 @@ function SideDrawer() {
             ) : (
                 <List>
                     {searchUser && searchUser.map((item, index) => (
-                        <>
-                            <ListItems item={item} key={index} token={session.user.token} />
+                        <div key={index}>
+                            <ListItems item={item} token={session.user.token} />
                             <Divider />
-                        </>
+                        </div>
                     ))}
 
                 </List>

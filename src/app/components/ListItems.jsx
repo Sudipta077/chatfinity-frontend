@@ -1,5 +1,6 @@
+'use client'
 import Image from 'next/image';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppDispatch } from '../../lib/hooks/hook.js'
 import { setUser } from '../../lib/features/users/userSlice.js'
 import { fetchChats } from '@/lib/features/chats/chatSlice.js';
@@ -7,12 +8,13 @@ import axios from 'axios';
 // import { headers } from 'next/headers.js';
 
 
-function ListItems({ item, token }) {
+function ListItems({ item, token , loggedUser}) {
 
-
+    const[sender,setSender] = useState(null);
+    
     const dispatch = useAppDispatch();
 
-
+    
 
     const handleChat = async (item) => {
 
@@ -24,15 +26,15 @@ function ListItems({ item, token }) {
                 },
 
             })
-            console.log("result----->", result);
+            console.log("result after creating chat----->", result);
 
             dispatch(setUser({
-                name: item.users ? item.chatName : item.name,
-                email: item.users ? item.users[0].email : item.email,
-                picture: item.users ? item.users[0].picture : item.picture,
-                id:  item._id,
-                members:item.users? item.users:[],
-                isGroupChat : item.isGroupChat
+                name: sender?.name,
+                email: sender?.email,
+                picture: sender?.picture,
+                id: result.data?._id,
+                members: result.data?.users,
+                isGroupChat: result.data.isGroupChat
             }))
 
             if (!item.users) {
@@ -46,17 +48,33 @@ function ListItems({ item, token }) {
 
     }
 
-    // console.log("resulttttttttttt------>",item);
+    
+    const getsender=()=>{
 
+        if(item.isGroupChat){
+
+        }
+
+        if (item.users) {
+            const filteredSender = item.users.find((user) => user._id !== loggedUser.id);
+            setSender(filteredSender);
+        }
+    }
+    
+    useEffect(()=>{
+        getsender();
+    },[item.users,loggedUser.id])
+    
+    // console.log("sender----->",sender);
 
     return (
         <div className="group border-b hover:bg-myyellow border-b-background text-center h-16 flex items-center px-2 hover:cursor-pointer" onClick={() => handleChat(item)}>
             <div className='rounded-full' width={50} height={50}>
-                <Image src={item.users ? item.users[0].picture : item.picture} alt="User Avatar" width={50} height={50} className="rounded-full" />
+                <Image src={item.users ? sender?.picture : item.picture} alt="User Avatar" width={50} height={50} className="rounded-full" />
             </div>
 
             <div className='w-[60%] text-left m-auto'>
-                <p className='text-textcolor group-hover:text-myblack'>{item.chatName ? item.chatName : item.name}</p>
+                <p className='text-textcolor group-hover:text-myblack'>{item.chatName ? item.chatName : sender?.name}</p>
                 {item?.sender?.content && <p className='text-textcolor overflow-hidden text-md h-6'>{item.content}...</p>}
             </div>
 

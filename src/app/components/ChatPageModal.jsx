@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import ProfileModal from './ProfileModal';
 
-function ChatPageModal(props) {
+
+function ChatPageModal({user}) {
+   
     const[show,setShow] = useState(false);
     return (
         <div className="absolute top-[50px] right-6 flex transition z-50">
@@ -14,7 +16,7 @@ function ChatPageModal(props) {
                 </p>
             </div>
 
-        {show && <ProfileModal toggleShow={()=>setShow(!show)}/>}
+        {show && <ProfileModal profile={user} toggleShow={()=>setShow(!show)}/>}
 
         </div>
     );

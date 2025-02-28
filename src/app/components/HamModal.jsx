@@ -84,7 +84,7 @@ function HamModal({ user }) {
             </div>
 
             {showProfile &&
-               <ProfileModal user={user} toggleShow={toggleShow}/>
+               <ProfileModal profile={user} toggleShow={toggleShow}/>
             }
         </div>
     );

@@ -26,6 +26,7 @@ function ChatList(props) {
     
     // console.log("data set from chat-->", user);
     const token = session?.user?.token;
+    const loggedUser = session?.user;
 
     const onSearch = (name) => {
         const newarr = user.chats.filter((item)=>item.users && item.users[0].name.toLowerCase().includes(name.toLowerCase()));
@@ -64,7 +65,7 @@ function ChatList(props) {
             ) : chats.length > 0 ? (
                 <div className="overflow-y-auto flex-1 mt-3 max-h-screen">
                     {chats.slice().reverse().map((item, key) => (
-                        <ListItems item={item} key={key} token ={token} />
+                        <ListItems item={item} key={key} token ={token} loggedUser={loggedUser}/>
                     ))}
                 </div>
             ) : (
