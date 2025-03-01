@@ -5,6 +5,7 @@ import { useAppDispatch } from '../../lib/hooks/hook.js'
 import { setUser } from '../../lib/features/users/userSlice.js'
 import { fetchChats } from '@/lib/features/chats/chatSlice.js';
 import axios from 'axios';
+import { getsender } from '../config/messageConfig.js';
 // import { headers } from 'next/headers.js';
 
 
@@ -49,20 +50,20 @@ function ListItems({ item, token , loggedUser}) {
     }
 
     
-    const getsender=()=>{
+    // const getsender=()=>{
 
-        if(item.isGroupChat){
+    //     if(item.isGroupChat){
 
-        }
+    //     }
 
-        if (item.users) {
-            const filteredSender = item.users.find((user) => user._id !== loggedUser.id);
-            setSender(filteredSender);
-        }
-    }
+    //     if (item.users) {
+    //         const filteredSender = item.users.find((user) => user._id !== loggedUser.id);
+    //         setSender(filteredSender);
+    //     }
+    // }
     
     useEffect(()=>{
-        getsender();
+        setSender(getsender(item,loggedUser));
     },[item.users,loggedUser.id])
     
     // console.log("sender----->",sender);
