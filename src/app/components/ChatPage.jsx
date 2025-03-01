@@ -10,6 +10,10 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { isSameSender } from '../config/messageConfig.js';
+import { io } from 'socket.io-client';
+
+const ENDPOINT = 'http://localhost:8080';
+    let socket,selectedChatCompare;
 
 function ChatPage() {
     const user = useAppSelector((state) => state.user);
@@ -18,8 +22,9 @@ function ChatPage() {
     const [loading, setLoading] = useState(false);
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
-
+    const [socketConnected,setSocketConnected] = useState(false);
     const token = session?.user?.token;
+
 
 
     async function fetchMessages() {
@@ -38,6 +43,10 @@ function ChatPage() {
             setLoading(false);
             setMessages(result.data);
 
+            // joins the chat room of the chatId, not user ID : chatId = roomId
+            // a house is a chatId/roomId, clicks on a chat then the user enters that house.
+            socket.emit('join chat',user.id);
+
         }
         catch (err) {
             console.log(err);
@@ -45,10 +54,16 @@ function ChatPage() {
         }
     }
 
+
+ 
+
+
+
     async function sendMessage(e) {
         e.preventDefault();
+        // text na thakle return korte hobe 
+        //   if (!text.trim()) return;
         try {
-
             const newMessage = text;
             setText("");
             const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, { content: newMessage, chatId: user.id }, {
@@ -59,24 +74,72 @@ function ChatPage() {
             })
             setMessages([...messages, result.data]);
             // console.log(result);
-
-            console.log("senderId-->", result);
+            // console.log("senderId-->", result.data);
+            socket.emit('new message',result.data);
         }
         catch (err) {
-            console.log(err);
+            console.log("ERRROR---->",err);
             toast.error("Error occurred while sending message.")
         }
     }
 
+    useEffect(()=>{
+        if(!user.id) return;
+        socket= io(ENDPOINT);
+        socket.emit('setup',user);
+        socket.on('connected', ()=>{
+            setSocketConnected(true)
+        })
+
+        return () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        };
+
+
+    },[user?.id])
+
+
     useEffect(() => {
         if (user?.id)
             fetchMessages();
+            selectedChatCompare = user;
 
     }, [user?.id, token]);
 
-    console.log("userId--->", user);
-    console.log("loggedin user--->", session?.user);
+       
 
+
+    useEffect(() => {
+        if (!socket) return;
+
+        // Remove existing listener before adding a new one to prevent duplicates
+        socket.off('message received');
+        
+        // Add new listener
+        socket.on('message received', (newMessage) => {
+            console.log("newMessage.chat._id------------------------>",newMessage.chat._id)
+            console.log("selectedChatCompare.id------------------------>",selectedChatCompare.id )
+            
+            if (!selectedChatCompare || selectedChatCompare.id !== newMessage.chat._id) {
+                // send notification
+                console.log("Notification: New message received");
+            } else {
+                console.log("New message received:", newMessage);
+                setMessages((prevMessages) => [...prevMessages, newMessage]);
+            }
+        });
+        
+    }, [messages, socket]); 
+
+
+
+
+
+    // console.log("userId--->", user);
+    // console.log("loggedin user--->", session?.user);
+    console.log(`messages of  chatid : ${user.id} is :`,messages);
 
     return (
         <>
