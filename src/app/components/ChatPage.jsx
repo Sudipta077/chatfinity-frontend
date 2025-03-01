@@ -13,9 +13,7 @@ import { isSameSender } from '../config/messageConfig.js';
 import { io } from 'socket.io-client';
 
 const ENDPOINT = 'http://localhost:8080';
-
-    let socket,selectedChatCompare;
-
+let socket, selectedChatCompare;
 
 function ChatPage() {
     const user = useAppSelector((state) => state.user);
@@ -24,10 +22,11 @@ function ChatPage() {
     const [loading, setLoading] = useState(false);
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
+    const [socketConnected, setSocketConnected] = useState(false);
+    const [typing, setTyping] = useState(false);
+    const [istyping, setIstyping] = useState(false);
 
-    const [socketConnected,setSocketConnected] = useState(false);
     const token = session?.user?.token;
-
 
 
 
@@ -36,20 +35,20 @@ function ChatPage() {
             return;
         setLoading(true);
         try {
+
             const result = await axios.get(`${process.env.NEXT_PUBLIC_URL}/message/${user.id}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-type': 'application/json'
                 }
             })
+            // console.log("all messages---->", result.data);
             setLoading(false);
             setMessages(result.data);
 
             // joins the chat room of the chatId, not user ID : chatId = roomId
-
             // a house is a chatId/roomId, clicks on a chat then the user enters that house.
-            socket.emit('join chat',user.id);
-
+            socket.emit('join chat', user.id);
 
         }
         catch (err) {
@@ -59,16 +58,15 @@ function ChatPage() {
     }
 
 
- 
+
 
 
 
     async function sendMessage(e) {
         e.preventDefault();
-
         // text na thakle return korte hobe 
         //   if (!text.trim()) return;
-
+        socket.emit('stop typing', user.id)
         try {
             const newMessage = text;
             setText("");
@@ -79,26 +77,31 @@ function ChatPage() {
                 }
             })
             setMessages([...messages, result.data]);
-
             // console.log(result);
             // console.log("senderId-->", result.data);
-            socket.emit('new message',result.data);
-
+            socket.emit('new message', result.data);
         }
         catch (err) {
-            console.log("ERRROR---->",err);
+            console.log("ERRROR---->", err);
             toast.error("Error occurred while sending message.")
         }
     }
 
-
-    useEffect(()=>{
-        if(!user.id) return;
-        socket= io(ENDPOINT);
-        socket.emit('setup',user);
-        socket.on('connected', ()=>{
+    useEffect(() => {
+        if (!user.id) return;
+        socket = io(ENDPOINT);
+        socket.emit('setup', user);
+        socket.on('connected', () => {
             setSocketConnected(true)
         })
+        socket.on('typing', () => {
+            setIstyping(true);
+        })
+        socket.on('stop typing', () => setIstyping(false));
+
+
+
+       
 
         return () => {
             if (socket) {
@@ -107,77 +110,65 @@ function ChatPage() {
         };
 
 
-    },[user?.id])
+    }, [user?.id])
 
 
     useEffect(() => {
         if (user?.id)
             fetchMessages();
-            selectedChatCompare = user;
+        selectedChatCompare = user;
 
-
-        // Cleanup function to disconnect socket when component unmounts
-        return () => {
-            if (socket) {
-                socket.disconnect();
-            }
-        };
-    }, [user?.id]);
-
-    // Fetch messages when user changes
-    useEffect(() => {
-        if (user?.id) {
-            fetchMessages();
-            selectedChatCompare = user;
-        }
     }, [user?.id, token]);
 
 
-    // Listen for received messages
-    useEffect(() => {
-        if (!socket) return;
 
-
-        // Remove existing listener before adding a new one to prevent duplicates
-        socket.off('message received');
-        
-        // Add new listener
-        socket.on('message received', (newMessage) => {
-            console.log("NNNNNNEEEEEEEWWWWWWWWWWWW message --->",newMessage);
-            if (!selectedChatCompare || selectedChatCompare.id !== newMessage.chat._id) {
-                // send notification
-                console.log("Notification: New message received");
-                // setMessages((prevMessages) => [...prevMessages, newMessage]);
-
-            } else {
-                console.log("New message received:", newMessage);
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
-            }
-        });
-        
-    }, [messages, socket]); // Add messages to dependency array
 
     useEffect(() => {
         if (!socket) return;
 
         // Remove existing listener before adding a new one to prevent duplicates
         socket.off('message received');
-        
+
         // Add new listener
         socket.on('message received', (newMessage) => {
-            console.log("newMessage.chat._id------------------------>",newMessage.chat._id)
-            console.log("selectedChatCompare.id------------------------>",selectedChatCompare.id )
-            
+            // console.log("newMessage.chat._id------------------------>", newMessage.chat._id)
+            // console.log("selectedChatCompare.id------------------------>", selectedChatCompare.id)
+
             if (!selectedChatCompare || selectedChatCompare.id !== newMessage.chat._id) {
                 // send notification
-                console.log("Notification: New message received");
+                // console.log("Notification: New message received");
             } else {
                 console.log("New message received:", newMessage);
                 setMessages((prevMessages) => [...prevMessages, newMessage]);
             }
         });
-        
-    }, [messages, socket]); 
+
+    }, [messages, socket]);
+
+    const handleTyping = (e, value) => {
+        setText(value);
+
+        if (!socket) return;
+
+        if (!typing) {
+            setTyping(true);
+            socket.emit('typing', user.id)
+        };
+
+        let lastTypingTime = new Date().getTime();
+        let timerLength = 3000;
+        setTimeout(() => {
+            let timeNow = new Date().getTime();
+            let timeDiff = timeNow - lastTypingTime;
+            if (timeDiff >= timerLength && typing) {
+                socket.emit('stop typing', user.id);
+                setTyping(false)
+            }
+        }, timerLength);
+
+
+    }
+
 
 
 
@@ -185,7 +176,7 @@ function ChatPage() {
 
     // console.log("userId--->", user);
     // console.log("loggedin user--->", session?.user);
-    console.log(`messages of  chatid : ${user.id} is :`,messages);
+    // console.log(`messages of  chatid : ${user.id} is :`, messages);
 
     return (
         <>
@@ -201,53 +192,80 @@ function ChatPage() {
                         </div>
 
                         <button onClick={() => setShowModal(!showModal)}>
-                            <BsThreeDotsVertical className="text-2xl text-[#303841]" />
+                            <BsThreeDotsVertical className={`text-2xl text-[#303841] hover:bg-foreground hover:text-gray-200 ${showModal && 'bg-foreground'} h-12 w-12 p-2 rounded-full transition`} />
                         </button>
                     </div>
 
                     {/* Chat Messages */}
-                    <div className='w-full h-4/5 overflow-y-auto bg-background px-5'>
+
+                    <div className='w-full h-4/5  overflow-y-auto bg-background px-5'>
                         {loading ?
+
                             <div className="h-full inset-0 bg-black bg-opacity-10 flex items-center justify-center z-50">
                                 <div className="bg-transparent p-5 rounded-lg flex items-center justify-center">
+
                                     <div className="animate-spin h-10 w-10 border-t-4 border-myyellow border-solid rounded-full"></div>
                                 </div>
                             </div>
+
+
                             :
+
+
+
                             messages && messages.map((item, key) => {
+
                                 return (
                                     <div
                                         key={key}
-                                        className={`w-full flex ${isSameSender(session?.user?.email, item.sender.email) ? "justify-end" : "justify-start"}`}
+                                        className={`w-full flex ${isSameSender(session?.user?.email, item.sender.email) ? "justify-end" : "justify-start"} py-2`}
                                     >
-                                        <div className={`w-2/5 px-3 rounded-xl py-2 my-2 ${isSameSender(user.email, item.sender.email) ? 'bg-mygreen' : 'bg-myblue'}`}>
+                                        <div className={`w-2/5 px-3 rounded-xl py-2 my-2 ${isSameSender(session.user.email, item.sender.email) ? 'bg-[#FFE893]' : 'bg-white'} shadow-lg`}>
                                             <p className="text-myblack">{item.content}</p>
-                                            <p className="text-xs">{item.sender.email}</p>
+                                            <p className="text-[10px]">{isSameSender(session.user.email, item.sender.email) ? 'You': item.sender.email}</p>
                                         </div>
                                     </div>
                                 );
                             })
+
+
                         }
                     </div>
 
+
+                    {istyping ? (
+                        <div>
+                            typing...
+                        </div>
+                    ) : (
+                        <></>
+                    )}
+
+
                     {/* Message Input */}
-                    <form onSubmit={sendMessage}>
+                    <form action="" className='absolute bottom-0 w-full shadow-sm'>
                         <div className="w-full flex items-center gap-2 p-2 bg-background">
                             <textarea
                                 className="w-full h-14 px-3 text-lg focus:outline-none border border-background rounded-md resize-none overflow-hidden"
                                 placeholder="Type messages here..."
                                 value={text}
-                                onChange={(e) => setText(e.target.value)}
+                                onChange={(e) => handleTyping(e, e.target.value)}
                                 rows="1"
                                 style={{ minHeight: "56px", maxHeight: "200px", whiteSpace: "pre-wrap" }}
                             />
-                            <button type="submit">
+                            <button onClick={sendMessage}>
                                 <IoSend className="text-4xl hover:cursor-pointer text-myyellow bg-background" />
                             </button>
                         </div>
                     </form>
 
-                    {showModal && <ChatPageModal user={user} />}
+                    {
+                        showModal &&
+                        <ChatPageModal user={user} />
+                    }
+
+
+
                 </div>
             )}
         </>

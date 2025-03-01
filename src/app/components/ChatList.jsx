@@ -45,6 +45,8 @@ function ChatList(props) {
         setChats(user.chats);
     }, [user.chats]); // Runs only when user.chats updates
 
+    console.log("all chatsss------->",chats);
+
     return (
         <div className="w-1/4 max-h-screen flex flex-col relative overflow-hidden">
             <div className="sticky top-0 bg-foreground z-10">

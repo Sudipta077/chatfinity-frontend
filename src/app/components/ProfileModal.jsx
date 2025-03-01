@@ -11,6 +11,7 @@ import { useSession } from 'next-auth/react';
 import { fetchChats } from '@/lib/features/chats/chatSlice';
 import { IoClose } from "react-icons/io5";
 import { setUser } from '@/lib/features/users/userSlice';
+import { getsender } from '../config/messageConfig';
 function ProfileModal({ toggleShow, profile }) {
     const user2 = useAppSelector((state) => state.user);
     const user = useAppSelector((state) => state.chat);
@@ -21,23 +22,24 @@ function ProfileModal({ toggleShow, profile }) {
     const [selected, setSelected] = useState([]);
 
     const handleSelectUser = (item) => {
-        const userId = item.users[0]?._id;
+        const userId = getsender(item,session.user);
 
         if (!selected.some((user) => user.users[0]?._id === userId)) {
             setSelected((prev) => [...prev, item]);
         }
     };
-    // console.log(session.user?.token);
+    console.log("sesssion->",session.user);
     const dispatch = useAppDispatch();
 
-    // console.log("user from profile ---->", user);
+    console.log("total ---->", user.chats);
     const totalUsers = user.chats;
 
-    // console.log("user2 from profile ---->", user2);
+    console.log("group members ---->", user2);
     const memberIds = user2.members.map(member => member._id);
 
-    const addable = totalUsers.filter((item) => !memberIds.includes(item.users[0]._id) && !item.isGroupChat)
-    // console.log("addable--->", addable);
+
+    const addable = totalUsers.filter((item) => !memberIds.includes(getsender(item.users,session.user?.id)?._id) && !item.isGroupChat)
+    console.log("addable--->", addable);
     const handleEdit = async (e) => {
         e.preventDefault();
         if (!session.user.token)
@@ -171,7 +173,7 @@ function ProfileModal({ toggleShow, profile }) {
     }
 
 
-    console.log("profile--->",profile);
+    console.log("profileeeeeeeeeeeeee--->",profile);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -235,19 +237,24 @@ function ProfileModal({ toggleShow, profile }) {
                                 name="members"
                                 id="members"
                                 onChange={(e) => {
-                                    const selectedUser = addable.find(user => user.users[0]?._id === e.target.value);
+                                    const selectedUser = addable.find(item =>
+                                      getsender(item, session.user)?._id === e.target.value
+                                    );
                                     if (selectedUser) handleSelectUser(selectedUser);
-                                }}
+                                  }}
                                 
                             >
                                 <option value="" className='text-myblack px-2'>Select a user</option>
-                                {
-                                    addable && addable.map((item, key) => (
-                                        <option key={key} value={item.users[0]?._id} className='text-textcolor px-2'>
-                                            {item.users[0]?.name}
+                                
+                                {    addable && addable.map((item, key) => 
+                                    
+
+                                         (
+                                        <option key={key} value={getsender(item, session.user)?._id} className='text-textcolor px-2'>
+                                            {getsender(item, session.user)?.name}
                                         </option>
-                                    ))
-                                }
+                                    ))}
+                                
                             </select>
                         </div>
 

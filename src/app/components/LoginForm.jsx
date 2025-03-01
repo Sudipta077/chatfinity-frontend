@@ -53,6 +53,8 @@ export default function LoginForm() {
             catch (err) {
                 console.error(err);
                 toast.error(err.message || "Login failed");
+                setLoading(false);
+
             }
 
 

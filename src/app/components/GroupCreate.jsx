@@ -40,7 +40,8 @@ function GroupCreate({ token, onShow, users }) {
 
             try{
                 let userIds=[];
-                selected.forEach((elem)=>userIds.push(elem.users[0]._id));             
+                selected.forEach((elem)=>userIds.push(elem.users[0]._id));  
+
                 const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat/group`,{
                     name:name.trim(),
                     users:userIds

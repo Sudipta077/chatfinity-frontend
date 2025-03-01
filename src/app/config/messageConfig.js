@@ -13,10 +13,12 @@ export const isSameSender=(userEmail,senderEmail)=>{
 export const getsender=(item,loggedUser)=>{
 
     if(item.isGroupChat){
+       
+        return null;
 
     }
 
-    if (item.users) {
+    else if (item.users) {
         const filteredSender = item.users.find((user) => user._id !== loggedUser.id);
         return filteredSender;
         // setSender(filteredSender);
