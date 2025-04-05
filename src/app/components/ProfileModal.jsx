@@ -22,7 +22,7 @@ function ProfileModal({ toggleShow, profile }) {
     const [selected, setSelected] = useState([]);
 
     const handleSelectUser = (item) => {
-        const userId = getsender(item,session.user);
+        const userId = item.users[0]?._id;
 
         if (!selected.some((user) => user.users[0]?._id === userId)) {
             setSelected((prev) => [...prev, item]);
