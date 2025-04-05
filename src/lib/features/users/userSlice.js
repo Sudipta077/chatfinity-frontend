@@ -8,7 +8,8 @@ const initialState = {
   picture:"",
   id:"",
   members:[],
-  isGroupChat:false
+  isGroupChat:false,
+  admin:""
 }
 
 export const userSlice = createSlice({
@@ -23,6 +24,7 @@ export const userSlice = createSlice({
       state.picture = action.payload.picture
       state.members = action.payload.members
       state.isGroupChat = action.payload.isGroupChat
+      state.admin = action.payload.admin
     },
   },
 })

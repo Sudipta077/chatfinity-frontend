@@ -5,20 +5,24 @@ import toast from 'react-hot-toast';
 import { IoClose } from "react-icons/io5";
 import { useAppDispatch } from '@/lib/hooks/hook';
 import { fetchChats } from '@/lib/features/chats/chatSlice';
-function GroupCreate({ token, onShow, users }) {
+import { getsender } from '../config/messageConfig';
+function GroupCreate({ userSession, onShow, users }) {
     const [selected, setSelected] = useState([]);
     const [name,setName] = useState("");
     const dispatch = useAppDispatch();
+    const token = userSession.user?.token
     // console.log("users from group --->", users);
 
     // Function to add a user to the selected list
     const handleSelectUser = (item) => {
-        const userId = item.users[0]?._id;
+        const userId = getsender(item, userSession.user)?._id;
 
-        if (!selected.some((user) => user.users[0]?._id === userId)) {
+        // if (!selected.some((user) => user.users[0]?._id === userId)) {
             setSelected((prev) => [...prev, item]);
-        }
-    };
+            
+            // }
+        };
+        // console.log("selected---->", selected);
 
   
     const handleRemoveUser = (userId) => {
@@ -40,8 +44,8 @@ function GroupCreate({ token, onShow, users }) {
 
             try{
                 let userIds=[];
-                selected.forEach((elem)=>userIds.push(elem.users[0]._id));  
-
+                selected.forEach((elem)=>userIds.push(getsender(elem,userSession.user)._id));  
+                console.log("group members-->",userIds);
                 const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat/group`,{
                     name:name.trim(),
                     users:userIds
@@ -88,15 +92,22 @@ function GroupCreate({ token, onShow, users }) {
                                     name="members"
                                     id="members"
                                     onChange={(e) => {
-                                        const selectedUser = users.find(user => user.users[0]?._id === e.target.value);
-                                        if (selectedUser) handleSelectUser(selectedUser);
+                                        const selectedUser = users.find(user => getsender(user, userSession.user)?._id === e.target.value);
+
+                                        if (selectedUser) {
+                                            console.log("selecteduser---->", selectedUser);
+                                            handleSelectUser(selectedUser);
+
+                                        }
                                     }}
                                 >
                                     <option value="" className='text-textcolor px-2'>Select a user</option>
                                     {
                                         users && users.slice().filter((item)=>!item.isGroupChat).map((item, key) => (
-                                            <option key={key} value={item.users[0]?._id} className='text-textcolor px-2'>
-                                                {item.users[0]?.name}
+                                            <option key={key} value={getsender(item,userSession.user)._id} className='text-textcolor px-2'>
+                                                {getsender(item,userSession.user).name}
+                                                {getsender(item,userSession.user).email}
+
                                             </option>
                                         ))
                                     }

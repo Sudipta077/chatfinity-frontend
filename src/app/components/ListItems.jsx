@@ -41,7 +41,8 @@ function ListItems({ item, token, loggedUser }) {
                     picture: item.picture,
                     id: item._id,
                     members: item.users,
-                    isGroupChat: item.isGroupChat
+                    isGroupChat: item.isGroupChat,
+                    admin: item.groupAdmin
                 }))
                 if (!item.users) {
                     dispatch(fetchChats({ token }));
@@ -54,7 +55,9 @@ function ListItems({ item, token, loggedUser }) {
                     picture: item.users ? sender?.picture : item.picture,
                     id: result.data?._id,
                     members: result.data?.users,
-                    isGroupChat: result.data.isGroupChat
+                    isGroupChat: result.data.isGroupChat,
+                    admin: "none"
+
                 }))
 
                 if (!item.users) {

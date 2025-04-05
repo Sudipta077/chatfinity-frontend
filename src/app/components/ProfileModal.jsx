@@ -16,30 +16,37 @@ function ProfileModal({ toggleShow, profile }) {
     const user2 = useAppSelector((state) => state.user);
     const user = useAppSelector((state) => state.chat);
     const { data: session } = useSession();
-    const [name, setName] = useState(profile.name?profile.name:profile.user.name);
+    const [name, setName] = useState(profile.name ? profile.name : profile.user.name);
     const [show, setShow] = useState(false);
     const [add, setAdd] = useState(false);
     const [selected, setSelected] = useState([]);
 
     const handleSelectUser = (item) => {
-        const userId = item.users[0]?._id;
 
-        if (!selected.some((user) => user.users[0]?._id === userId)) {
-            setSelected((prev) => [...prev, item]);
-        }
+
+        const userId = getsender(item, session.user)?._id;
+
+        console.log("user----> ", user);
+
+        console.log("user2 ----> ", user2);
+
+
+        setSelected((prev) => [...prev, item]);
+        // if (!selected.some((user) => ._id === userId)) {
+        // }
     };
-    console.log("sesssion->",session.user);
+    // console.log("sesssion->",session.user);
     const dispatch = useAppDispatch();
 
-    console.log("total ---->", user.chats);
+    // console.log("total ---->", user.chats);
     const totalUsers = user.chats;
 
-    console.log("group members ---->", user2);
+    // console.log("group members ---->", user2);
     const memberIds = user2.members.map(member => member._id);
 
 
-    const addable = totalUsers.filter((item) => !memberIds.includes(getsender(item.users,session.user?.id)?._id) && !item.isGroupChat)
-    console.log("addable--->", addable);
+    const addable = totalUsers.filter((item) => !memberIds.includes(getsender(item, session.user?.id)?._id) && !item.isGroupChat)
+    // console.log("addable--->", addable);
     const handleEdit = async (e) => {
         e.preventDefault();
         if (!session.user.token)
@@ -57,13 +64,13 @@ function ProfileModal({ toggleShow, profile }) {
             toast.success("Group name updated.")
             dispatch(fetchChats({ token: session.user.token }));
             dispatch(setUser({
-                            name: name,
-                            email: user2.email,
-                            picture: user2.picture,
-                            id: user2.id,
-                            members:user2.members,
-                            isGroupChat : user2.isGroupChat
-                        }))
+                name: name,
+                email: user2.email,
+                picture: user2.picture,
+                id: user2.id,
+                members: user2.members,
+                isGroupChat: user2.isGroupChat
+            }))
             setShow(!show)
             console.log(result);
         }
@@ -91,8 +98,8 @@ function ProfileModal({ toggleShow, profile }) {
             })
             toast.success("Member has been removed.");
             dispatch(fetchChats({ token: session.user.token }));
-            const newMembers = user2.members.filter((member)=>member._id!=item._id);
-            console.log("newmembers-->",newMembers);
+            const newMembers = user2.members.filter((member) => member._id != item._id);
+            console.log("newmembers-->", newMembers);
             dispatch(setUser({
                 ...user2, // Spread existing user details
                 members: newMembers // Update only the members list
@@ -106,22 +113,22 @@ function ProfileModal({ toggleShow, profile }) {
 
     }
 
-    const addMember=async()=>{
-        const userIds= selected.map((item)=>item.users[0]._id);
-        // console.log("selected---->",userIds);
-        try{
-            const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat/groupadd`,{
-                chatId:user2.id,
-                userId:userIds
-            },{
-                headers:{
-                    Authorization:`Bearer ${session.user.token}`,
-                    'Content-type':'application/json'
+    const addMember = async () => {
+        const userIds = selected.map((item) => getsender(item, session.user)._id);
+        console.log("selected---->", userIds);
+        try {
+            const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat/groupadd`, {
+                chatId: user2.id,
+                userId: userIds
+            }, {
+                headers: {
+                    Authorization: `Bearer ${session.user.token}`,
+                    'Content-type': 'application/json'
                 }
             })
             toast.success("Member added")
-            const newMembers = [...user2.members, ...selected.map((item) => ({ _id: item.users[0]._id,picture:item.users[0].picture,name:item.users[0].name }))];
-            console.log("newmembers-->",newMembers);
+            const newMembers = [...user2.members, ...selected.map((item) => ({ _id: getsender(item, session.user)._id, picture: getsender(item, session.user).picture, name: getsender(item, session.user).name }))];
+            console.log("newmembers-->", newMembers);
             dispatch(setUser({
                 ...user2, // Spread existing user details
                 members: newMembers // Update only the members list
@@ -129,11 +136,11 @@ function ProfileModal({ toggleShow, profile }) {
             setSelected([]);
             console.log(result);
         }
-        catch(err){
+        catch (err) {
             toast.error("Error Occurred");
             console.log(err);
         }
-    
+
     }
 
 
@@ -173,14 +180,16 @@ function ProfileModal({ toggleShow, profile }) {
     }
 
 
-    console.log("profileeeeeeeeeeeeee--->",profile);
+    console.log("profileeeeeeeeeeeeee--->", profile);
+    console.log("logged in--->", session.user);
+
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="max-h-[500px] bg-background justify-center w-[500px] p-5 rounded-lg shadow-lg overflow-auto">
 
 
-                <Image src={profile.picture ? profile.picture : profile.user.pic } width={100} height={100} alt='image' className='rounded-full m-auto' />
+                <Image src={profile.picture ? profile.picture : profile.user.pic} width={100} height={100} alt='image' className='rounded-full m-auto' />
 
 
                 {
@@ -201,7 +210,7 @@ function ProfileModal({ toggleShow, profile }) {
                         :
                         <div className="flex justify-center items-center gap-2 mt-5">
                             <h1 className="text-textcolor text-2xl text-center">{name}</h1>
-                            {user2.isGroupChat &&
+                            {user2.isGroupChat &&  profile.admin?._id === session.user.id &&
                                 <MdEdit className="text-textcolor text-xl cursor-pointer" onClick={() => setShow(!show)} />
                             }
                         </div>
@@ -209,7 +218,9 @@ function ProfileModal({ toggleShow, profile }) {
                 }
 
 
-                <h1 className="text-textcolor mt-3 text-md text-center">{profile.email?profile.email:profile.user.email}</h1>
+                <h1 className="text-textcolor mt-3 text-md text-center">
+                    {profile.isGroupChat && "Group is created by "}
+                    {profile.isGroupChat?profile.admin.name:profile.email}</h1>
 
                 {!profile.user && user2.isGroupChat && user2.members.map((item, key) => (
                     <div key={key} className="flex items-center h-16 justify-start bg-myyellow rounded mt-2 px-2 py-1">
@@ -217,9 +228,14 @@ function ProfileModal({ toggleShow, profile }) {
                             <Image src={item.picture} width={50} height={50} alt='image' className='rounded-full m-auto' />
                         </div>
                         <h1 className="w-3/4 text-myblack text-md">{item.name}</h1>
-                        <button onClick={(e) => handleDelete(e, item)}>
-                            <IoTrashBin className='text-myblack text-xl' />
-                        </button>
+
+                        {
+                            profile.admin?._id === session.user.id &&
+
+                            <button onClick={(e) => handleDelete(e, item)}>
+                                <IoTrashBin className='text-myblack text-xl' />
+                            </button>
+                        }
                     </div>
                 ))}
 
@@ -238,23 +254,28 @@ function ProfileModal({ toggleShow, profile }) {
                                 id="members"
                                 onChange={(e) => {
                                     const selectedUser = addable.find(item =>
-                                      getsender(item, session.user)?._id === e.target.value
+                                        getsender(item, session.user)?._id === e.target.value
                                     );
                                     if (selectedUser) handleSelectUser(selectedUser);
-                                  }}
-                                
+                                }}
+
                             >
                                 <option value="" className='text-myblack px-2'>Select a user</option>
-                                
-                                {    addable && addable.map((item, key) => 
-                                    
 
-                                         (
-                                        <option key={key} value={getsender(item, session.user)?._id} className='text-textcolor px-2'>
+                                {addable && addable.map((item, key) =>
+
+
+                                (
+                                    <option key={key} value={getsender(item, session.user)?._id} className='text-textcolor px-2'>
+                                        <>
                                             {getsender(item, session.user)?.name}
-                                        </option>
-                                    ))}
-                                
+                                            {getsender(item, session.user)?.email}
+
+                                            {/* <Image src={getsender(item, session.user)?.picture} width={50} height={50} alt='user' /> */}
+                                        </>
+                                    </option>
+                                ))}
+
                             </select>
                         </div>
 
@@ -281,7 +302,7 @@ function ProfileModal({ toggleShow, profile }) {
                 }
                 <div className='flex gap-5 justify-end'>
 
-                    {user2.isGroupChat &&
+                    {user2.isGroupChat &&  profile.admin?._id === session.user.id &&
 
                         <button onClick={() => setAdd(!add)} className="mt-5 float-right bg-mygreen px-5 py-2 rounded border-b border-b-green-700">
                             <HiUserAdd className='text-xl' /></button>

@@ -174,7 +174,7 @@ function ChatPage() {
 
 
 
-    // console.log("userId--->", user);
+    console.log("userId--->", user);
     // console.log("loggedin user--->", session?.user);
     // console.log(`messages of  chatid : ${user.id} is :`, messages);
 

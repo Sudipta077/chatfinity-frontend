@@ -76,7 +76,7 @@ function ChatList(props) {
 
             {
                 showGroup && 
-                <GroupCreate token={token} onShow={()=>setShowGroup(!showGroup)} users={user.chats}/>
+                <GroupCreate userSession={session} onShow={()=>setShowGroup(!showGroup)} users={user.chats}/>
             }
 
 
