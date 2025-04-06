@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useRef } from 'react';
 import Image from 'next/image';
 import { useAppSelector } from '../../lib/hooks/hook.js';
 import { IoSend } from "react-icons/io5";
@@ -92,16 +92,15 @@ function ChatPage() {
         socket = io(ENDPOINT);
         socket.emit('setup', user);
         socket.on('connected', () => {
-            setSocketConnected(true)
+            setSocketConnected(true);
+            console.log("connnnnennenenne");
         })
+
         socket.on('typing', () => {
+            console.log("get typing.........eee");
             setIstyping(true);
         })
         socket.on('stop typing', () => setIstyping(false));
-
-
-
-       
 
         return () => {
             if (socket) {
@@ -111,6 +110,11 @@ function ChatPage() {
 
 
     }, [user?.id])
+
+    useEffect(() => {
+        console.log("✍️ istyping changed:", istyping);
+    }, [istyping]);
+
 
 
     useEffect(() => {
@@ -145,26 +149,36 @@ function ChatPage() {
 
     }, [messages, socket]);
 
+    const typingTimeoutRef = useRef(null);
+
     const handleTyping = (e, value) => {
         setText(value);
+
+        // console.log("typing.......",socket);
 
         if (!socket) return;
 
         if (!typing) {
+            // console.log("hulalla");
             setTyping(true);
             socket.emit('typing', user.id)
         };
 
-        let lastTypingTime = new Date().getTime();
-        let timerLength = 3000;
-        setTimeout(() => {
-            let timeNow = new Date().getTime();
-            let timeDiff = timeNow - lastTypingTime;
-            if (timeDiff >= timerLength && typing) {
+
+        if(typingTimeoutRef.current)
+            clearTimeout(typingTimeoutRef.current);
+
+
+
+
+       
+        typingTimeoutRef.current =  setTimeout(() => {
+          
+           
                 socket.emit('stop typing', user.id);
                 setTyping(false)
-            }
-        }, timerLength);
+     
+        }, 1000);
 
 
     }
@@ -174,7 +188,7 @@ function ChatPage() {
 
 
 
-    console.log("userId--->", user);
+    // console.log("userId--->", user);
     // console.log("loggedin user--->", session?.user);
     // console.log(`messages of  chatid : ${user.id} is :`, messages);
 
@@ -222,7 +236,7 @@ function ChatPage() {
                                     >
                                         <div className={`w-2/5 px-3 rounded-xl py-2 my-2 ${isSameSender(session.user.email, item.sender.email) ? 'bg-[#FFE893]' : 'bg-white'} shadow-lg`}>
                                             <p className="text-myblack">{item.content}</p>
-                                            <p className="text-[10px]">{isSameSender(session.user.email, item.sender.email) ? 'You': item.sender.email}</p>
+                                            <p className="text-[10px]">{isSameSender(session.user.email, item.sender.email) ? 'You' : item.sender.email}</p>
                                         </div>
                                     </div>
                                 );
@@ -230,11 +244,20 @@ function ChatPage() {
 
 
                         }
+
+                        {istyping ? (
+                            <div className='text-myblack text-sm bottom-7 bg-myyellow w-fit py-2 px-4 rounded'>
+                                typing...
+                            </div>
+                        ) : (
+                            <></>
+                        )}
+
                     </div>
 
 
                     {istyping ? (
-                        <div>
+                        <div className='text-myblack text-4xl bottom-7'>
                             typing...
                         </div>
                     ) : (
