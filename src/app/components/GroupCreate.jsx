@@ -56,7 +56,7 @@ function GroupCreate({ userSession, onShow, users }) {
                     }
                 })
     
-                console.log("result after group--->",result);
+                // console.log("result after group--->",result);
                 dispatch(fetchChats({token}));
                 onShow();
             }

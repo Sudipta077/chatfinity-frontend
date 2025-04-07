@@ -27,12 +27,12 @@ function ListItems({ item, token, loggedUser }) {
                 },
 
             })
-            console.log("result after creating chat----->", result);
+            // console.log("result after creating chat----->", result);
 
             // console.log("chatname----->", item.users?item.users : "nothing" );
 
             // console.log("item.usersssssssssssss->",item.users);
-            console.log("senderd----->", item);
+            // console.log("senderd----->", item);
 
             if (item.isGroupChat) {
                 dispatch(setUser({

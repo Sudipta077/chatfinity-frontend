@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState,useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { useAppSelector } from '../../lib/hooks/hook.js';
 import { IoSend } from "react-icons/io5";
@@ -25,10 +25,16 @@ function ChatPage() {
     const [socketConnected, setSocketConnected] = useState(false);
     const [typing, setTyping] = useState(false);
     const [istyping, setIstyping] = useState(false);
-
+    const messagesEndRef = useRef(null);
     const token = session?.user?.token;
 
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, istyping]);
 
     async function fetchMessages() {
         if (!token && !user?.id)
@@ -93,11 +99,11 @@ function ChatPage() {
         socket.emit('setup', user);
         socket.on('connected', () => {
             setSocketConnected(true);
-            console.log("connnnnennenenne");
+            // console.log("connnnnennenenne");
         })
 
         socket.on('typing', () => {
-            console.log("get typing.........eee");
+            // console.log("get typing.........eee");
             setIstyping(true);
         })
         socket.on('stop typing', () => setIstyping(false));
@@ -112,7 +118,7 @@ function ChatPage() {
     }, [user?.id])
 
     useEffect(() => {
-        console.log("✍️ istyping changed:", istyping);
+        // console.log("✍️ istyping changed:", istyping);
     }, [istyping]);
 
 
@@ -165,19 +171,19 @@ function ChatPage() {
         };
 
 
-        if(typingTimeoutRef.current)
+        if (typingTimeoutRef.current)
             clearTimeout(typingTimeoutRef.current);
 
 
 
 
-       
-        typingTimeoutRef.current =  setTimeout(() => {
-          
-           
-                socket.emit('stop typing', user.id);
-                setTyping(false)
-     
+
+        typingTimeoutRef.current = setTimeout(() => {
+
+
+            socket.emit('stop typing', user.id);
+            setTyping(false)
+
         }, 1000);
 
 
@@ -234,11 +240,21 @@ function ChatPage() {
                                         key={key}
                                         className={`w-full flex ${isSameSender(session?.user?.email, item.sender.email) ? "justify-end" : "justify-start"} py-2`}
                                     >
-                                        <div className={`w-2/5 px-3 rounded-xl py-2 my-2 ${isSameSender(session.user.email, item.sender.email) ? 'bg-[#FFE893]' : 'bg-white'} shadow-lg`}>
+                                        <div
+                                            className={`w-fit max-w-[40%] break-words px-3 rounded-xl py-2 my-2 ${isSameSender(session.user.email, item.sender.email)
+                                                    ? 'bg-[#FFE893]'
+                                                    : 'bg-white'
+                                                } shadow-lg`}
+                                        >
                                             <p className="text-myblack">{item.content}</p>
-                                            <p className="text-[10px]">{isSameSender(session.user.email, item.sender.email) ? 'You' : item.sender.email}</p>
+                                            <p className="text-[10px]">
+                                                {isSameSender(session.user.email, item.sender.email)
+                                                    ? 'You'
+                                                    : item.sender.name}
+                                            </p>
                                         </div>
                                     </div>
+
                                 );
                             })
 
@@ -252,6 +268,8 @@ function ChatPage() {
                         ) : (
                             <></>
                         )}
+
+                        <div ref={messagesEndRef} />
 
                     </div>
 
@@ -273,6 +291,12 @@ function ChatPage() {
                                 placeholder="Type messages here..."
                                 value={text}
                                 onChange={(e) => handleTyping(e, e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault(); // prevent newline
+                                        sendMessage(e);
+                                    }
+                                }}
                                 rows="1"
                                 style={{ minHeight: "56px", maxHeight: "200px", whiteSpace: "pre-wrap" }}
                             />
