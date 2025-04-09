@@ -220,7 +220,7 @@ function ProfileModal({ toggleShow, profile }) {
 
                 <h1 className="text-textcolor mt-3 text-md text-center">
                     {profile.isGroupChat && "Group is created by "}
-                    {profile.isGroupChat?profile.admin.name:profile.email}</h1>
+                    {profile.isGroupChat?profile.admin?.name:profile.email}</h1>
 
                 {!profile.user && user2.isGroupChat && user2.members.map((item, key) => (
                     <div key={key} className="flex items-center h-16 justify-start bg-myyellow rounded mt-2 px-2 py-1">

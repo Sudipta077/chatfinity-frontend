@@ -153,7 +153,7 @@ function ChatPage() {
             }
         });
 
-    }, [messages, socket]);
+    }, [user?.id]);
 
     const typingTimeoutRef = useRef(null);
 
