@@ -3,6 +3,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { useAppSelector } from '../../lib/hooks/hook.js';
 import { IoSend } from "react-icons/io5";
+import { TbClockUp } from "react-icons/tb";
+import { MdDone } from "react-icons/md";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import ChatDefault from './ChatDefault.jsx';
 import ChatPageModal from './ChatPageModal.jsx';
@@ -48,9 +50,9 @@ function ChatPage() {
                     'Content-type': 'application/json'
                 }
             })
-            // console.log("all messages---->", result.data);
             setLoading(false);
             setMessages(result.data);
+            // console.log("all messages---->", result.data);
 
             // joins the chat room of the chatId, not user ID : chatId = roomId
             // a house is a chatId/roomId, clicks on a chat then the user enters that house.
@@ -63,39 +65,138 @@ function ChatPage() {
         }
     }
 
-
-
-
-
-
     async function sendMessage(e) {
         e.preventDefault();
-        // text na thakle return korte hobe 
-        //   if (!text.trim()) return;
-        socket.emit('stop typing', user.id)
+        socket.emit('stop typing', user.id);
+
+        if (!text.trim()) return; // guard against empty messages
+
+        const tempId = `temp-${Date.now()}`;
+        const optimisticMsg = {
+            _id: tempId,
+            content: text,
+            sender: {
+                name: session?.user?.name,
+                email: session?.user?.email,
+                picture: session?.user?.image, // optional
+            },
+            createdAt: new Date().toISOString(),
+            optimistic: true, // mark this one
+        };
+
+        // 1. Show the message immediately
+        setMessages((prev) => [...prev, optimisticMsg]);
+
+        const messageToSend = text;
+        setText("");
+
         try {
-            const newMessage = text;
-            setText("");
-            const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, { content: newMessage, chatId: user.id }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-type': 'application/json'
+            // 2. Send to backend
+            // const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, {
+            //     content: messageToSend,
+            //     chatId: user.id
+            // }, {
+            //     headers: {
+            //         Authorization: `Bearer ${token}`,
+            //         'Content-type': 'application/json'
+            //     }
+            // });
+
+            // 3. Emit real message to socket
+
+            let msg = {
+                content: messageToSend,
+                chatId: user.id,
+                sender: {
+                    email: session.user?.email,
+                    name: session.user?.name
                 }
-            })
-            setMessages([...messages, result.data]);
-            // console.log(result);
-            // console.log("senderId-->", result.data);
-            socket.emit('new message', result.data);
-        }
-        catch (err) {
-            console.log("ERRROR---->", err);
-            toast.error("Error occurred while sending message.")
+            }
+            // console.log("Session------>",session.user);
+
+            socket.emit('new message', msg);
+
+            // 4. Replace optimistic message with real one
+            // setMessages((prevMessages) => prevMessages.map(msg =>
+            //     msg._id === tempId ? result.data : msg
+            // ));
+
+        } catch (err) {
+            // 5. Optionally, remove the temp message or mark as failed
+            setMessages((prevMessages) => prevMessages.filter(msg => msg._id !== tempId));
+            toast.error("Error occurred while sending message.");
         }
     }
 
+
+
+    // async function sendMessage(e){
+    //      e.preventDefault();
+    //      socket.emit('stop typing', user.id)
+    //      try {
+    //         const newMessage = text;
+    //         setText("");
+
+    //         // while calling api i send:------->  token,content,chatId 
+
+
+
+    //         const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, { content: newMessage, chatId: user.id }, {
+    //             headers: {
+    //                 Authorization: `Bearer ${token}`,
+    //                 'Content-type': 'application/json'
+    //             }
+    //         })
+    //         // sender.email,sender.name,content
+
+    //         setMessages([...messages, {_id:Date.now(),content:newMessage,sender:{name:session.user?.name,email:session.user?.email}}]);
+    //         // console.log(result);
+    //         // console.log("senderId-->", result.data);
+    //         socket.emit('new message', result.data);
+    //     }
+    //     catch (err) {
+    //         console.log("ERRROR---->", err);
+    //         toast.error("Error occurred while sending message.")
+    //     }
+
+    // }
+
+
+
+
+
+    // async function sendMessage(e) {
+    //     e.preventDefault();
+    //     // text na thakle return korte hobe 
+    //     //   if (!text.trim()) return;
+    //     socket.emit('stop typing', user.id)
+    //     try {
+    //         const newMessage = text;
+    //         setText("");
+    //         const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, { content: newMessage, chatId: user.id }, {
+    //             headers: {
+    //                 Authorization: `Bearer ${token}`,
+    //                 'Content-type': 'application/json'
+    //             }
+    //         })
+    //         setMessages([...messages, result.data]);
+    //         // console.log(result);
+    //         // console.log("senderId-->", result.data);
+    //         socket.emit('new message', result.data);
+    //     }
+    //     catch (err) {
+    //         console.log("ERRROR---->", err);
+    //         toast.error("Error occurred while sending message.")
+    //     }
+    // }
+
     useEffect(() => {
         if (!user.id) return;
-        socket = io(ENDPOINT);
+        socket = io(ENDPOINT, {
+            auth: {
+                token: token,
+            },
+        });
         socket.emit('setup', user);
         socket.on('connected', () => {
             setSocketConnected(true);
@@ -144,12 +245,24 @@ function ChatPage() {
             // console.log("newMessage.chat._id------------------------>", newMessage.chat._id)
             // console.log("selectedChatCompare.id------------------------>", selectedChatCompare.id)
 
-            if (!selectedChatCompare || selectedChatCompare.id !== newMessage.chat._id) {
+            if (!selectedChatCompare || selectedChatCompare.id !== newMessage.message.chatId) {
                 // send notification
                 // console.log("Notification: New message received");
             } else {
-                console.log("New message received:", newMessage);
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
+                console.log("New message receivedddddddd:", newMessage.message);
+                // setMessages((prevMessages) => [...prevMessages, newMessage.message]);
+                setMessages((prevMessages) => {
+                    const isOptimistic = prevMessages.some(msg => msg.optimistic && msg.content === newMessage.message.content);
+                    if (isOptimistic) {
+                        return prevMessages.map(msg =>
+                            msg.optimistic && msg.content === newMessage.message.content
+                                ? newMessage.message
+                                : msg
+                        );
+                    }
+                    return [...prevMessages, newMessage.message];
+                });
+
             }
         });
 
@@ -238,19 +351,29 @@ function ChatPage() {
                                 return (
                                     <div
                                         key={key}
-                                        className={`w-full flex ${isSameSender(session?.user?.email, item.sender.email) ? "justify-end" : "justify-start"} py-2`}
+                                        className={`w-full flex ${isSameSender(session?.user?.email, item.sender?.email) ? "justify-end" : "justify-start"} py-2`}
                                     >
                                         <div
-                                            className={`w-fit max-w-[40%] break-words px-3 rounded-xl py-2 my-2 ${isSameSender(session.user.email, item.sender.email)
-                                                    ? 'bg-[#FFE893]'
-                                                    : 'bg-white'
+                                            className={`w-fit max-w-[40%] break-words px-3 rounded-lg py-2 my-2 ${isSameSender(session.user.email, item.sender?.email)
+                                                ? 'bg-[#FFE893]'
+                                                : 'bg-white'
                                                 } shadow-lg`}
                                         >
                                             <p className="text-myblack">{item.content}</p>
-                                            <p className="text-[10px]">
-                                                {isSameSender(session.user.email, item.sender.email)
-                                                    ? 'You'
-                                                    : item.sender.name}
+                                            <p className="text-[10px] text-gray-400">
+                                                {isSameSender(session.user.email, item.sender?.email)
+                                                    ?
+                                                    <>
+                                                        {
+                                                            item?.optimistic === true ?
+                                                                <TbClockUp className='text-myblack text-sm' />
+                                                                :
+                                                                <MdDone className='text-myblack text-sm' />
+                                                        }
+
+
+                                                    </>
+                                                    : item.sender?.name}
                                             </p>
                                         </div>
                                     </div>
