@@ -30,6 +30,9 @@ function ChatPage() {
     const messagesEndRef = useRef(null);
     const token = session?.user?.token;
 
+    const isAiChat = user?.id === "artificial intelligence";
+
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
@@ -39,6 +42,7 @@ function ChatPage() {
     }, [messages, istyping]);
 
     async function fetchMessages() {
+        if (isAiChat) return setMessages([]);
         if (!token && !user?.id)
             return;
         setLoading(true);
@@ -67,10 +71,9 @@ function ChatPage() {
 
     async function sendMessage(e) {
         e.preventDefault();
-        socket.emit('stop typing', user.id);
 
         if (!text.trim()) return; // guard against empty messages
-
+    
         const tempId = `temp-${Date.now()}`;
         const optimisticMsg = {
             _id: tempId,
@@ -90,41 +93,114 @@ function ChatPage() {
         const messageToSend = text;
         setText("");
 
-        try {
-            // 2. Send to backend
-            // const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, {
-            //     content: messageToSend,
-            //     chatId: user.id
-            // }, {
-            //     headers: {
-            //         Authorization: `Bearer ${token}`,
-            //         'Content-type': 'application/json'
-            //     }
-            // });
-
-            // 3. Emit real message to socket
-
-            let msg = {
-                content: messageToSend,
-                chatId: user.id,
-                sender: {
-                    email: session.user?.email,
-                    name: session.user?.name
+        if (isAiChat) {
+           
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/chat/ai`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt: messageToSend })
+                });
+        
+                if (!response.ok) {
+                    throw new Error("AI response failed");
                 }
+        
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let aiText = '';
+        
+                const aiMsg = {
+                    _id: `ai-${Date.now()}`,
+                    content: "",
+                    sender: {
+                        name: "Chatfinity Assistant",
+                        email: "",
+                        picture: "/logo.png", // AI image from public
+                    },
+                    createdAt: new Date().toISOString(),
+                    optimistic:true
+                };
+        
+                // Add the empty AI message initially
+                setMessages((prev) => [...prev, aiMsg]);
+        
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+        
+                    const chunk = decoder.decode(value, { stream: true });
+                    aiText += chunk;
+        
+                    // Update the last message as it grows
+                    setMessages((prev) => {
+                        const updated = [...prev];
+                        const lastMsg = updated[updated.length - 1];
+                    
+                        updated[updated.length - 1] = {
+                            ...lastMsg,
+                            content: aiText,
+                            optimistic: false,
+                        };
+                    
+                        return updated;
+                    });
+                }
+            } catch (err) {
+                console.log("erorrr ai -->",err);
+                toast.error("Failed to get AI response.");
             }
-            // console.log("Session------>",session.user);
+        }
 
-            socket.emit('new message', msg);
 
-            // 4. Replace optimistic message with real one
-            // setMessages((prevMessages) => prevMessages.map(msg =>
-            //     msg._id === tempId ? result.data : msg
-            // ));
+       
 
-        } catch (err) {
-            // 5. Optionally, remove the temp message or mark as failed
-            setMessages((prevMessages) => prevMessages.filter(msg => msg._id !== tempId));
-            toast.error("Error occurred while sending message.");
+     
+        
+        else {
+
+            socket.emit('stop typing', user.id);
+
+           
+            try {
+                // 2. Send to backend
+                // const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, {
+                //     content: messageToSend,
+                //     chatId: user.id
+                // }, {
+                //     headers: {
+                //         Authorization: `Bearer ${token}`,
+                //         'Content-type': 'application/json'
+                //     }
+                // });
+
+                // 3. Emit real message to socket
+
+                let msg = {
+                    content: messageToSend,
+                    chatId: user.id,
+                    sender: {
+                        email: session.user?.email,
+                        name: session.user?.name
+                    }
+                }
+                // console.log("Session------>",session.user);
+
+                socket.emit('new message', msg);
+
+                // 4. Replace optimistic message with real one
+                // setMessages((prevMessages) => prevMessages.map(msg =>
+                //     msg._id === tempId ? result.data : msg
+                // ));
+
+            } catch (err) {
+                // 5. Optionally, remove the temp message or mark as failed
+                setMessages((prevMessages) => prevMessages.filter(msg => msg._id !== tempId));
+                toast.error("Error occurred while sending message.");
+            }
         }
     }
 
@@ -191,7 +267,7 @@ function ChatPage() {
     // }
 
     useEffect(() => {
-        if (!user.id) return;
+        if (!user.id || isAiChat) return;
         socket = io(ENDPOINT, {
             auth: {
                 token: token,

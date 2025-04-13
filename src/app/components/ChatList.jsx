@@ -14,22 +14,25 @@ import notfound from '../../../public/searchResult.png'
 import { useAppSelector, useAppDispatch } from '../../lib/hooks/hook.js';
 import { fetchChats } from "../../lib/features/chats/chatSlice.js";
 import GroupCreate from './GroupCreate';
+import { BsStars } from "react-icons/bs";
+import { setUser } from '../../lib/features/users/userSlice.js'
+
 
 function ChatList(props) {
     const [users, setUsers] = useState(messages);
     const [chats, setChats] = useState([]);
-    const[showGroup,setShowGroup] = useState(false);
+    const [showGroup, setShowGroup] = useState(false);
     const { data: session } = useSession();
     const [loading, setLoading] = useState(false);
     const dispatch = useAppDispatch();
     const user = useAppSelector((state) => state.chat);
-    
+
     // console.log("data set from chat-->", user);
     const token = session?.user?.token;
     const loggedUser = session?.user;
 
     const onSearch = (name) => {
-        const newarr = user.chats.filter((item)=>item.users && item.users[0].name.toLowerCase().includes(name.toLowerCase()));
+        const newarr = user.chats.filter((item) => item.users && item.users[0].name.toLowerCase().includes(name.toLowerCase()));
         setChats(newarr);
     };
 
@@ -39,6 +42,19 @@ function ChatList(props) {
             dispatch(fetchChats({ token }));
         }
     }, [dispatch, token]);
+
+    const handleAi = (e) => {
+        dispatch(setUser({
+            name:"Chatfinity Assistant",
+            email: "",
+            picture: "/logoheader.png",
+            id:"artificial intelligence",
+            members: [],
+            isGroupChat: false,
+            admin: "none"
+
+        }));
+    }
 
     // Update state when user.chats changes
     useEffect(() => {
@@ -53,10 +69,15 @@ function ChatList(props) {
                 <div className='flex justify-between px-2 items-center'>
                     <h1 className='text-2xl text-textcolor font-semibold'>Chats</h1>
                     <div className='flex gap-2'>
-                        <Tooltip title="Create or Join a Group" onClick={()=>setShowGroup(!showGroup)}>
+                        <Tooltip title="Chat with ai" onClick={handleAi}>
+
+                            <BsStars className='bg-gradient-to-r from-indigo-400 to-cyan-400 text-foreground w-16 h-7 hover:cursor-pointer rounded m-auto px-6 text-sm' />
+                        </Tooltip>
+
+                        <Tooltip title="Create or Join a Group" onClick={() => setShowGroup(!showGroup)}>
                             <MdGroups className='bg-myyellow text-foreground w-16 h-7 hover:cursor-pointer rounded m-auto px-1 text-2xl' />
                         </Tooltip>
-                        <SideDrawer />
+                        <SideDrawer className="bg-myyellow" />
                     </div>
                 </div>
                 <SearchChat onSearch={onSearch} />
@@ -67,7 +88,7 @@ function ChatList(props) {
             ) : chats.length > 0 ? (
                 <div className="overflow-y-auto flex-1 mt-3 max-h-screen">
                     {chats.slice().reverse().map((item, key) => (
-                        <ListItems item={item} key={key} token ={token} loggedUser={loggedUser}/>
+                        <ListItems item={item} key={key} token={token} loggedUser={loggedUser} />
                     ))}
                 </div>
             ) : (
@@ -75,8 +96,8 @@ function ChatList(props) {
             )}
 
             {
-                showGroup && 
-                <GroupCreate userSession={session} onShow={()=>setShowGroup(!showGroup)} users={user.chats}/>
+                showGroup &&
+                <GroupCreate userSession={session} onShow={() => setShowGroup(!showGroup)} users={user.chats} />
             }
 
 
