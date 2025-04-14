@@ -20,7 +20,11 @@ export const getsender=(item,loggedUser)=>{
 
     else if (item.users) {
         const filteredSender = item.users.find((user) => user._id !== loggedUser.id);
-        return filteredSender;
+        const filter= {
+            user:filteredSender,
+            salt: item.salt
+        }
+        return filter;
         // setSender(filteredSender);
     }
 }

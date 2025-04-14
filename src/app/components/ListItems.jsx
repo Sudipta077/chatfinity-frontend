@@ -18,9 +18,9 @@ function ListItems({ item, token, loggedUser }) {
 
 
     const handleChat = async (item) => {
-
+        // console.log("sender---.",item);
         try {
-            const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat`, { userId: item._id }, {
+            const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat`, { userId: item.user? item?.user?._id:item._id }, {
                 headers: {
                     'Content-type': 'application/json',
                     Authorization: `Bearer ${token}`
@@ -50,13 +50,14 @@ function ListItems({ item, token, loggedUser }) {
             }
             else {
                 dispatch(setUser({
-                    name: item.users ? sender?.name : item.name,
-                    email: item.users ? sender?.email : item.email,
-                    picture: item.users ? sender?.picture : item.picture,
+                    name: item.salt ?  item?.user?.name : item.name ,
+                    email: item.salt ?  item?.user?.email : item.email,
+                    picture: item.salt ?  item?.user?.picture : item.picture,
                     id: result.data?._id,
                     members: result.data?.users,
                     isGroupChat: result.data.isGroupChat,
-                    admin: "none"
+                    admin: "none",
+                    salt:item.salt?item.salt:""
 
                 }))
 
@@ -93,12 +94,12 @@ function ListItems({ item, token, loggedUser }) {
     return (
         <div className="group border-b hover:bg-myyellow border-b-background text-center h-16 flex items-center px-2 hover:cursor-pointer" onClick={() => handleChat(sender!=null ? sender : item)}>
             <div className='rounded-full' width={50} height={50}>
-                <Image src={item.users ? (item.isGroupChat ? item.picture : sender?.picture) : item.picture} alt="User Avatar" width={50} height={50} className="rounded-full" />
+                <Image src={item.users ? (item.isGroupChat ? item.picture : sender?.user?.picture) : item.picture} alt="User Avatar" width={50} height={50} className="rounded-full" />
             </div>
 
             <div className='w-[60%] text-left m-auto'>
-                <p className='text-textcolor group-hover:text-myblack'>{item.name ? item.name : (item.isGroupChat ? item.chatName : sender?.name)}</p>
-                {item?.sender?.content && <p className='text-textcolor overflow-hidden text-md h-6'>{item.content}...</p>}
+                <p className='text-textcolor group-hover:text-myblack'>{item.name ? item.name : (item.isGroupChat ? item.chatName : sender?.user?.name)}</p>
+                {item?.sender?.user?.content && <p className='text-textcolor overflow-hidden text-md h-6'>{item.content}...</p>}
             </div>
 
         </div>

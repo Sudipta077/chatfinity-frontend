@@ -32,6 +32,7 @@ function ChatPage() {
 
     const isAiChat = user?.id === "artificial intelligence";
 
+    // console.log("user-=--->",user);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -72,30 +73,36 @@ function ChatPage() {
     async function sendMessage(e) {
         e.preventDefault();
 
-        if (!text.trim()) return; // guard against empty messages
-    
-        const tempId = `temp-${Date.now()}`;
-        const optimisticMsg = {
-            _id: tempId,
-            content: text,
-            sender: {
-                name: session?.user?.name,
-                email: session?.user?.email,
-                picture: session?.user?.image, // optional
-            },
-            createdAt: new Date().toISOString(),
-            optimistic: true, // mark this one
-        };
+        if (!text.trim()) return;
 
-        // 1. Show the message immediately
-        setMessages((prev) => [...prev, optimisticMsg]);
+
 
         const messageToSend = text;
+
         setText("");
 
         if (isAiChat) {
-           
+
+            const aiMsg = {
+                _id: `ai-${Date.now()}`,
+                content: text,
+                sender: {
+                    name: "You",
+                    email: session.user?.email,
+                    picture: session.user?.image,
+                },
+                createdAt: new Date().toISOString(),
+                optimistic: false
+            };
+
+            setMessages((prev) => [...prev, aiMsg]);
+
+
             try {
+
+               
+
+
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/chat/ai`, {
                     method: 'POST',
                     headers: {
@@ -104,67 +111,86 @@ function ChatPage() {
                     },
                     body: JSON.stringify({ prompt: messageToSend })
                 });
-        
+
                 if (!response.ok) {
                     throw new Error("AI response failed");
                 }
-        
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder("utf-8");
-                let aiText = '';
-        
-                const aiMsg = {
+
+                const aiMsg2 = {
                     _id: `ai-${Date.now()}`,
-                    content: "",
+                    content: '',
                     sender: {
-                        name: "Chatfinity Assistant",
-                        email: "",
+                        name: "assistant",
+                        email: '',
                         picture: "/logo.png", // AI image from public
                     },
                     createdAt: new Date().toISOString(),
-                    optimistic:true
+                    optimistic: false
                 };
-        
+                setMessages((prev) => [...prev, aiMsg2]);
+
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let aiText = '';
+
+
+
                 // Add the empty AI message initially
-                setMessages((prev) => [...prev, aiMsg]);
-        
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-        
+
                     const chunk = decoder.decode(value, { stream: true });
                     aiText += chunk;
-        
+
                     // Update the last message as it grows
                     setMessages((prev) => {
                         const updated = [...prev];
                         const lastMsg = updated[updated.length - 1];
-                    
+
                         updated[updated.length - 1] = {
                             ...lastMsg,
                             content: aiText,
                             optimistic: false,
                         };
-                    
+
                         return updated;
                     });
                 }
             } catch (err) {
-                console.log("erorrr ai -->",err);
+                console.log("erorrr ai -->", err);
                 toast.error("Failed to get AI response.");
             }
         }
 
 
-       
 
-     
-        
+
+
+
         else {
+
+            const tempId = `temp-${Date.now()}`;
+            const optimisticMsg = {
+                _id: tempId,
+                content: text,
+                sender: {
+                    name: session?.user?.name,
+                    email: session?.user?.email,
+                    picture: session?.user?.image, // optional
+                },
+                createdAt: new Date().toISOString(),
+                optimistic: true, // mark this one
+            };
+
+            // 1. Show the message immediately
+            setMessages((prev) => [...prev, optimisticMsg]);
 
             socket.emit('stop typing', user.id);
 
-           
+
             try {
                 // 2. Send to backend
                 // const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, {
@@ -179,8 +205,13 @@ function ChatPage() {
 
                 // 3. Emit real message to socket
 
+                const key = await deriveKey(user.id, user.salt);
+                const encrypted = await encryptMessage(messageToSend, key);
+
+                console.log("Encrypted:", encrypted);
+
                 let msg = {
-                    content: messageToSend,
+                    content: JSON.stringify(encrypted),
                     chatId: user.id,
                     sender: {
                         email: session.user?.email,
@@ -188,6 +219,9 @@ function ChatPage() {
                     }
                 }
                 // console.log("Session------>",session.user);
+
+           
+
 
                 socket.emit('new message', msg);
 
@@ -317,7 +351,7 @@ function ChatPage() {
         socket.off('message received');
 
         // Add new listener
-        socket.on('message received', (newMessage) => {
+        socket.on('message received', async(newMessage) => {
             // console.log("newMessage.chat._id------------------------>", newMessage.chat._id)
             // console.log("selectedChatCompare.id------------------------>", selectedChatCompare.id)
 
@@ -325,8 +359,17 @@ function ChatPage() {
                 // send notification
                 // console.log("Notification: New message received");
             } else {
-                console.log("New message receivedddddddd:", newMessage.message);
                 // setMessages((prevMessages) => [...prevMessages, newMessage.message]);
+                const encrypted = JSON.parse(newMessage.message.content);
+
+                // 2. Derive key from chatId and salt (you need access to salt!)
+                const key = await deriveKey(newMessage.message.chatId, user.salt); // <-- make sure `user.salt` is available here
+    
+                // 3. Decrypt
+                const decrypted = await decryptMessage(encrypted, key);
+    
+                // 4. Replace encrypted content with decrypted
+                newMessage.message.content = decrypted;
                 setMessages((prevMessages) => {
                     const isOptimistic = prevMessages.some(msg => msg.optimistic && msg.content === newMessage.message.content);
                     if (isOptimistic) {
@@ -377,6 +420,80 @@ function ChatPage() {
 
 
     }
+
+
+
+    async function deriveKey(chatId, salt) {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            "raw",
+            enc.encode(chatId),
+            { name: "PBKDF2" },
+            false,
+            ["deriveKey"]
+        );
+
+        return await window.crypto.subtle.deriveKey(
+            {
+                name: "PBKDF2",
+                salt: enc.encode(salt),
+                iterations: 100000,
+                hash: "SHA-256"
+            },
+            keyMaterial,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"]
+        );
+    }
+
+
+    async function encryptMessage(message, key) {
+        const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV
+        const enc = new TextEncoder();
+
+        const ciphertext = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv },
+            key,
+            enc.encode(message)
+        );
+
+        return {
+            iv: Array.from(iv),
+            ciphertext: Array.from(new Uint8Array(ciphertext)),
+        };
+    }
+
+
+
+    async function decryptMessage({ iv, ciphertext }, key) {
+        const dec = new TextDecoder();
+
+        const decrypted = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: new Uint8Array(iv) },
+            key,
+            new Uint8Array(ciphertext)
+        );
+
+        return dec.decode(decrypted);
+    }
+
+
+    //   const runChatEncryption = async (chatId, salt, plainTextMessage) => {
+    //     const key = await deriveKey(chatId, salt);
+    //     const encrypted = await encryptMessage(plainTextMessage, key);
+
+    //     console.log("Encrypted:", encrypted);
+
+    //     const decrypted = await decryptMessage(encrypted, key);
+    //     console.log("Decrypted:", decrypted);
+    //   };
+
+
+
+
+
+
 
 
 
@@ -486,7 +603,7 @@ function ChatPage() {
                     <form action="" className='absolute bottom-0 w-full shadow-sm'>
                         <div className="w-full flex items-center gap-2 p-2 bg-background">
                             <textarea
-                                className="w-full h-14 px-3 text-lg focus:outline-none border border-background rounded-md resize-none overflow-hidden"
+                                className="w-full h-14 p-3 text-lg focus:outline-none border border-background rounded-md resize-none overflow-hidden"
                                 placeholder="Type messages here..."
                                 value={text}
                                 onChange={(e) => handleTyping(e, e.target.value)}

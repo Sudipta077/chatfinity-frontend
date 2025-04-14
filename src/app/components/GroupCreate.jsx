@@ -15,18 +15,19 @@ function GroupCreate({ userSession, onShow, users }) {
 
     // Function to add a user to the selected list
     const handleSelectUser = (item) => {
-        const userId = getsender(item, userSession.user)?._id;
+        
+        console.log("selected---->", selected);
+        const userId = getsender(item, userSession.user)?.user?._id;
 
-        // if (!selected.some((user) => user.users[0]?._id === userId)) {
+        if (!selected.some((user) => getsender(user, userSession.user)?.user?._id === userId)) {
             setSelected((prev) => [...prev, item]);
             
-            // }
+            }
         };
-        // console.log("selected---->", selected);
 
   
     const handleRemoveUser = (userId) => {
-        setSelected((prev) => prev.filter((user) => user.users[0]?._id !== userId));
+        setSelected((prev) => prev.filter((user) => getsender(user, userSession.user)?.user?._id !== userId));
     };
 
 
@@ -44,8 +45,8 @@ function GroupCreate({ userSession, onShow, users }) {
 
             try{
                 let userIds=[];
-                selected.forEach((elem)=>userIds.push(getsender(elem,userSession.user)._id));  
-                console.log("group members-->",userIds);
+                selected.forEach((elem)=>userIds.push(getsender(elem,userSession.user)?.user?._id));  
+                // console.log("group members-->",userIds);
                 const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat/group`,{
                     name:name.trim(),
                     users:userIds
@@ -92,21 +93,21 @@ function GroupCreate({ userSession, onShow, users }) {
                                     name="members"
                                     id="members"
                                     onChange={(e) => {
-                                        const selectedUser = users.find(user => getsender(user, userSession.user)?._id === e.target.value);
+                                        const selectedUser = users.find(user => getsender(user, userSession.user)?.user?._id === e.target.value);
 
                                         if (selectedUser) {
                                             console.log("selecteduser---->", selectedUser);
                                             handleSelectUser(selectedUser);
-
                                         }
                                     }}
                                 >
                                     <option value="" className='text-textcolor px-2'>Select a user</option>
                                     {
                                         users && users.slice().filter((item)=>!item.isGroupChat).map((item, key) => (
-                                            <option key={key} value={getsender(item,userSession.user)._id} className='text-textcolor px-2'>
-                                                {getsender(item,userSession.user).name}
-                                                {getsender(item,userSession.user).email}
+                                            <option key={key} value={getsender(item,userSession.user)?.user?._id} className='text-textcolor px-2'>
+                                                 {getsender(item,userSession.user)?.user?.name}
+                                                {getsender(item,userSession.user)?.user?.email}
+                                                
 
                                             </option>
                                         ))
@@ -123,10 +124,10 @@ function GroupCreate({ userSession, onShow, users }) {
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {selected.map((item, key) => (
                                     <div key={key} className="flex items-center bg-mygreen px-3 py-1 rounded text-myblack">
-                                        <span>{item.users[0]?.name}</span>
+                                        <span>{getsender(item,userSession.user)?.user?.name}</span>
                                         <IoClose 
                                             className="ml-2 text-lg cursor-pointer text-myblack"
-                                            onClick={() => handleRemoveUser(item.users[0]?._id)}
+                                            onClick={() => handleRemoveUser(getsender(item,userSession.user)?.user?._id)}
                                         />
                                     </div>
                                 ))}

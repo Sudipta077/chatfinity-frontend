@@ -47,7 +47,7 @@ function ChatList(props) {
         dispatch(setUser({
             name:"Chatfinity Assistant",
             email: "",
-            picture: "/logoheader.png",
+            picture: "/ai.png",
             id:"artificial intelligence",
             members: [],
             isGroupChat: false,
@@ -58,6 +58,7 @@ function ChatList(props) {
 
     // Update state when user.chats changes
     useEffect(() => {
+        console.log("fetched chats --->",user.chats);
         setChats(user.chats);
     }, [user.chats]); // Runs only when user.chats updates
 
