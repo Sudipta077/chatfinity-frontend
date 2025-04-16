@@ -13,7 +13,8 @@ import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { isSameSender } from '../config/messageConfig.js';
 import { io } from 'socket.io-client';
-
+import { TfiClip } from "react-icons/tfi";
+import { IoMdClose } from "react-icons/io";
 const ENDPOINT = 'http://localhost:8080';
 let socket, selectedChatCompare;
 
@@ -29,6 +30,9 @@ function ChatPage() {
     const [istyping, setIstyping] = useState(false);
     const messagesEndRef = useRef(null);
     const token = session?.user?.token;
+    const fileInputRef = useRef(null);
+    const [file, setFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
 
     const isAiChat = user?.id === "artificial intelligence";
 
@@ -41,6 +45,9 @@ function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, istyping]);
+
+
+    console.log("selected file ----->", file);
 
     async function fetchMessages() {
         if (isAiChat) return setMessages([]);
@@ -190,10 +197,6 @@ function ChatPage() {
         }
 
 
-
-
-
-
         else {
 
             const tempId = `temp-${Date.now()}`;
@@ -205,8 +208,9 @@ function ChatPage() {
                     email: session?.user?.email,
                     picture: session?.user?.image, // optional
                 },
-                createdAt: new Date().toISOString(),
+                createdAt: Date.now(),
                 optimistic: true, // mark this one
+
             };
 
             // 1. Show the message immediately
@@ -262,67 +266,30 @@ function ChatPage() {
         }
     }
 
+    async function sendFile(e) {
+        e.preventDefault();
+        const tempId = `temp-${Date.now()}`;
+        const optimisticMsg = {
+            _id: tempId,
+            content: '',
+            sender: {
+                name: session?.user?.name,
+                email: session?.user?.email,
+                picture: session?.user?.image,
+            },
+            messageType: 'image',
+            fileLink:imagePreview,
+            createdAt: Date.now(),
+            optimistic: true, // mark this one
 
+        };
 
-    // async function sendMessage(e){
-    //      e.preventDefault();
-    //      socket.emit('stop typing', user.id)
-    //      try {
-    //         const newMessage = text;
-    //         setText("");
+        // 1. Show the message immediately
+        setMessages((prev) => [...prev, optimisticMsg]);
+        setFile(null);
+        toast.success(file.name);
+    }
 
-    //         // while calling api i send:------->  token,content,chatId 
-
-
-
-    //         const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, { content: newMessage, chatId: user.id }, {
-    //             headers: {
-    //                 Authorization: `Bearer ${token}`,
-    //                 'Content-type': 'application/json'
-    //             }
-    //         })
-    //         // sender.email,sender.name,content
-
-    //         setMessages([...messages, {_id:Date.now(),content:newMessage,sender:{name:session.user?.name,email:session.user?.email}}]);
-    //         // console.log(result);
-    //         // console.log("senderId-->", result.data);
-    //         socket.emit('new message', result.data);
-    //     }
-    //     catch (err) {
-    //         console.log("ERRROR---->", err);
-    //         toast.error("Error occurred while sending message.")
-    //     }
-
-    // }
-
-
-
-
-
-    // async function sendMessage(e) {
-    //     e.preventDefault();
-    //     // text na thakle return korte hobe 
-    //     //   if (!text.trim()) return;
-    //     socket.emit('stop typing', user.id)
-    //     try {
-    //         const newMessage = text;
-    //         setText("");
-    //         const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/message`, { content: newMessage, chatId: user.id }, {
-    //             headers: {
-    //                 Authorization: `Bearer ${token}`,
-    //                 'Content-type': 'application/json'
-    //             }
-    //         })
-    //         setMessages([...messages, result.data]);
-    //         // console.log(result);
-    //         // console.log("senderId-->", result.data);
-    //         socket.emit('new message', result.data);
-    //     }
-    //     catch (err) {
-    //         console.log("ERRROR---->", err);
-    //         toast.error("Error occurred while sending message.")
-    //     }
-    // }
 
     useEffect(() => {
         if (!user.id || isAiChat) return;
@@ -507,21 +474,18 @@ function ChatPage() {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    const getFileSize = (size) => {
 
+        const mb = size / (1024 * 1024);
+        if (mb >= 1) {
+            return mb.toFixed(2) + " MB";
+        } else {
+            const kb = size / 1024;
+            return kb.toFixed(2) + " KB";
+        }
 
-    //   const runChatEncryption = async (chatId, salt, plainTextMessage) => {
-    //     const key = await deriveKey(chatId, salt);
-    //     const encrypted = await encryptMessage(plainTextMessage, key);
+    }
 
-    //     console.log("Encrypted:", encrypted);
-
-    //     const decrypted = await decryptMessage(encrypted, key);
-    //     console.log("Decrypted:", decrypted);
-    //   };
-
-    // console.log("userId--->", user);
-    // console.log("loggedin user--->", session?.user);
-    // console.log(`messages of  chatid : ${user.id} is :`, messages);
 
     return (
         <>
@@ -565,40 +529,56 @@ function ChatPage() {
                                         key={key}
                                         className={`w-full flex ${isSameSender(session?.user?.email, item.sender?.email) ? "justify-end" : "justify-start"} py-2`}
                                     >
-                                        <div
-                                            className={`w-fit max-w-[40%] break-words px-3 rounded-lg py-2 my-2 ${isSameSender(session.user.email, item.sender?.email)
-                                                ? 'bg-[#FFE893]'
-                                                : 'bg-white'
-                                                } shadow-lg`}
-                                        >
-                                            <p className="text-myblack">{item.content}</p>
-                                            <p className="text-[10px] text-gray-400">
-                                                {isSameSender(session.user.email, item.sender?.email)
-                                                    ?
-                                                    <>
-                                                        {
-                                                            item?.optimistic === true ?
 
-                                                                <TbClockUp className='text-myblack text-sm' />
+                                        {
 
-                                                                :
-                                                                <div className='flex gap-2'>
-                                                                    <p className='text-myblack text-[10px]'>{formatTime(item?.createdAt)}</p>
-                                                                    <MdDone className='text-myblack text-sm' />
-                                                                </div>
+                                            item.messageType === 'image' ?
+
+                                                <div>
+                                                    <img
+                                                        src={item.fileLink}
+                                                        alt="preview"
+                                                        className="w-40 h-fit rounded shadow-md"
+                                                    />
+                                                </div>
+
+                                                :
+
+                                                <div
+                                                    className={`w-fit max-w-[40%] break-words px-3 rounded-lg py-2 my-2 ${isSameSender(session.user.email, item.sender?.email)
+                                                        ? 'bg-[#FFE893]'
+                                                        : 'bg-white'
+                                                        } shadow-lg`}
+                                                >
+                                                    <p className="text-myblack">{item.content}</p>
+                                                    <p className="text-[10px] text-gray-400">
+                                                        {isSameSender(session.user.email, item.sender?.email)
+                                                            ?
+                                                            <>
+                                                                {
+                                                                    item?.optimistic === true ?
+
+                                                                        <TbClockUp className='text-myblack text-sm' />
+
+                                                                        :
+                                                                        <div className='flex gap-2'>
+                                                                            <p className='text-myblack text-[10px]'>{formatTime(item?.createdAt)}</p>
+                                                                            <MdDone className='text-myblack text-sm' />
+                                                                        </div>
+                                                                }
+
+
+                                                            </>
+                                                            :
+                                                            // <div className='flex justify-between gap-5'>
+                                                            /* {item.sender?.name} */
+                                                            <p className='text-[10px]'>{formatTime(item?.createdAt)}</p>
+                                                            // </div>
+
                                                         }
-
-
-                                                    </>
-                                                    :
-                                                    // <div className='flex justify-between gap-5'>
-                                                        /* {item.sender?.name} */
-                                                        <p className='text-[10px]'>{formatTime(item?.createdAt)}</p>
-                                                    // </div>
-
-                                                }
-                                            </p>
-                                        </div>
+                                                    </p>
+                                                </div>
+                                        }
                                     </div>
 
                                 );
@@ -631,7 +611,63 @@ function ChatPage() {
 
                     {/* Message Input */}
                     <form action="" className='absolute bottom-0 w-full shadow-sm'>
-                        <div className="w-full flex items-center gap-2 p-2 bg-background">
+                        {file && (
+                            <div className="h-20 w-fit bg-myyellow rounded px-2 py-2 ml-2 flex items-center gap-2">
+                                {imagePreview && (
+                                    <img
+                                        src={imagePreview}
+                                        alt="preview"
+                                        className="w-14 h-14 rounded shadow-md"
+                                    />
+                                )}
+
+                                <div className="relative">
+                                    <IoMdClose
+                                        className="absolute top-[-40px] right-[-20px] bg-background bg-opacity-50 rounded-full text-3xl hover:cursor-pointer text-red-600 p-1"
+                                        onClick={() => setFile(null)}
+                                    />
+                                    <div className="flex flex-col text-sm">
+                                        <span className="font-medium text-myblack">{file.name}</span>
+                                        <span className="text-[10px] text-myblack">
+                                            {getFileSize(file.size)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div className="w-full relative flex items-center gap-2 p-2 bg-background">
+                            {!isAiChat &&
+                                <div className='bg-myyellow h-14 w-14 rounded p-2 hover:cursor-pointer grid items-center' onClick={() => fileInputRef.current.click()}>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*,application/pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                                        onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                                const MAX_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+
+                                                if (file.size > MAX_SIZE) {
+                                                    toast.error("File size should be less than 20Mb.");
+                                                    e.target.value = ""; // reset input
+                                                    return;
+                                                }
+                                                // console.log("Selected file:", file);
+                                                setFile(file);
+
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => {
+                                                    setImagePreview(reader.result); // base64 string
+                                                };
+                                                reader.readAsDataURL(file);
+                                                // handle upload logic here
+                                            }
+                                        }}
+                                    />
+                                    <TfiClip className='text-gray-800 text-3xl' />
+                                </div>
+                            }
                             <textarea
                                 className="w-full h-14 p-3 text-lg focus:outline-none border border-background rounded-md resize-none overflow-hidden"
                                 placeholder="Type messages here..."
@@ -646,7 +682,7 @@ function ChatPage() {
                                 rows="1"
                                 style={{ minHeight: "56px", maxHeight: "200px", whiteSpace: "pre-wrap" }}
                             />
-                            <button onClick={sendMessage}>
+                            <button onClick={file === null ? sendMessage : sendFile}>
                                 <IoSend className="text-4xl hover:cursor-pointer text-myyellow bg-background" />
                             </button>
                         </div>
