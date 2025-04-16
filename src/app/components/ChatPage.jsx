@@ -55,9 +55,33 @@ function ChatPage() {
                     'Content-type': 'application/json'
                 }
             })
+
+            const encryptedMessages = result.data;
+
+            const key = await deriveKey(user.id, user.salt);
+
+            const decryptedMessages = await Promise.all(
+                encryptedMessages.map(async (msg) => {
+                    try {
+                        const parsed = JSON.parse(msg.content);
+                        const decrypted = await decryptMessage(parsed, key);
+                        return {
+                            ...msg,
+                            content: decrypted,
+                        };
+                    } catch (e) {
+                        console.error("Failed to decrypt message:", e);
+                        return msg; // fallback to encrypted if decryption fails
+                    }
+                })
+            );
+
+
             setLoading(false);
-            setMessages(result.data);
-            // console.log("all messages---->", result.data);
+            setMessages(decryptedMessages);
+            console.log("all messages---->", result.data);
+            console.log("all messages after decypt---->", decryptedMessages);
+
 
             // joins the chat room of the chatId, not user ID : chatId = roomId
             // a house is a chatId/roomId, clicks on a chat then the user enters that house.
@@ -100,7 +124,7 @@ function ChatPage() {
 
             try {
 
-               
+
 
 
                 const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/chat/ai`, {
@@ -220,7 +244,7 @@ function ChatPage() {
                 }
                 // console.log("Session------>",session.user);
 
-           
+
 
 
                 socket.emit('new message', msg);
@@ -351,7 +375,7 @@ function ChatPage() {
         socket.off('message received');
 
         // Add new listener
-        socket.on('message received', async(newMessage) => {
+        socket.on('message received', async (newMessage) => {
             // console.log("newMessage.chat._id------------------------>", newMessage.chat._id)
             // console.log("selectedChatCompare.id------------------------>", selectedChatCompare.id)
 
@@ -364,10 +388,10 @@ function ChatPage() {
 
                 // 2. Derive key from chatId and salt (you need access to salt!)
                 const key = await deriveKey(newMessage.message.chatId, user.salt); // <-- make sure `user.salt` is available here
-    
+
                 // 3. Decrypt
                 const decrypted = await decryptMessage(encrypted, key);
-    
+
                 // 4. Replace encrypted content with decrypted
                 newMessage.message.content = decrypted;
                 setMessages((prevMessages) => {
@@ -478,6 +502,12 @@ function ChatPage() {
         return dec.decode(decrypted);
     }
 
+    const formatTime = (timestamp) => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+
 
     //   const runChatEncryption = async (chatId, salt, plainTextMessage) => {
     //     const key = await deriveKey(chatId, salt);
@@ -488,17 +518,6 @@ function ChatPage() {
     //     const decrypted = await decryptMessage(encrypted, key);
     //     console.log("Decrypted:", decrypted);
     //   };
-
-
-
-
-
-
-
-
-
-
-
 
     // console.log("userId--->", user);
     // console.log("loggedin user--->", session?.user);
@@ -559,14 +578,25 @@ function ChatPage() {
                                                     <>
                                                         {
                                                             item?.optimistic === true ?
+
                                                                 <TbClockUp className='text-myblack text-sm' />
+
                                                                 :
-                                                                <MdDone className='text-myblack text-sm' />
+                                                                <div className='flex gap-2'>
+                                                                    <p className='text-myblack text-[10px]'>{formatTime(item?.createdAt)}</p>
+                                                                    <MdDone className='text-myblack text-sm' />
+                                                                </div>
                                                         }
 
 
                                                     </>
-                                                    : item.sender?.name}
+                                                    :
+                                                    // <div className='flex justify-between gap-5'>
+                                                        /* {item.sender?.name} */
+                                                        <p className='text-[10px]'>{formatTime(item?.createdAt)}</p>
+                                                    // </div>
+
+                                                }
                                             </p>
                                         </div>
                                     </div>
