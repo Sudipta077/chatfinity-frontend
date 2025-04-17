@@ -24,6 +24,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'cdn-icons-png.freepik.com',
       },   
+      {
+        protocol: 'https',
+        hostname: 'chatfinity.s3.ap-south-1.amazonaws.com',
+      },
 
     ],
 

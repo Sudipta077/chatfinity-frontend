@@ -15,6 +15,7 @@ import { isSameSender } from '../config/messageConfig.js';
 import { io } from 'socket.io-client';
 import { TfiClip } from "react-icons/tfi";
 import { IoMdClose } from "react-icons/io";
+import ImageMessage from './ImageMessage.jsx';
 const ENDPOINT = 'http://localhost:8080';
 let socket, selectedChatCompare;
 
@@ -69,16 +70,21 @@ function ChatPage() {
 
             const decryptedMessages = await Promise.all(
                 encryptedMessages.map(async (msg) => {
-                    try {
-                        const parsed = JSON.parse(msg.content);
-                        const decrypted = await decryptMessage(parsed, key);
-                        return {
-                            ...msg,
-                            content: decrypted,
-                        };
-                    } catch (e) {
-                        console.error("Failed to decrypt message:", e);
-                        return msg; // fallback to encrypted if decryption fails
+                    if (msg.messageType === 'text') {
+                        try {
+                            const parsed = JSON.parse(msg.content);
+                            const decrypted = await decryptMessage(parsed, key);
+                            return {
+                                ...msg,
+                                content: decrypted,
+                            };
+                        } catch (e) {
+                            console.error("Failed to decrypt message:", e);
+                            return msg;
+                        }
+                    } else {
+                        // For files/images, just return as is
+                        return msg;
                     }
                 })
             );
@@ -86,8 +92,8 @@ function ChatPage() {
 
             setLoading(false);
             setMessages(decryptedMessages);
-            console.log("all messages---->", result.data);
-            console.log("all messages after decypt---->", decryptedMessages);
+            // console.log("all messages---->", result.data);
+            // console.log("all messages after decypt---->", decryptedMessages);
 
 
             // joins the chat room of the chatId, not user ID : chatId = roomId
@@ -232,11 +238,11 @@ function ChatPage() {
                 // });
 
                 // 3. Emit real message to socket
-
+                
                 const key = await deriveKey(user.id, user.salt);
                 const encrypted = await encryptMessage(messageToSend, key);
 
-                console.log("Encrypted:", encrypted);
+                // console.log("Encrypted:", encrypted);
 
                 let msg = {
                     content: JSON.stringify(encrypted),
@@ -244,7 +250,8 @@ function ChatPage() {
                     sender: {
                         email: session.user?.email,
                         name: session.user?.name
-                    }
+                    },
+                    createdAt:Date.now()
                 }
                 // console.log("Session------>",session.user);
 
@@ -278,7 +285,7 @@ function ChatPage() {
                 picture: session?.user?.image,
             },
             messageType: 'image',
-            fileLink:imagePreview,
+            key: imagePreview,
             createdAt: Date.now(),
             optimistic: true, // mark this one
 
@@ -286,8 +293,97 @@ function ChatPage() {
 
         // 1. Show the message immediately
         setMessages((prev) => [...prev, optimisticMsg]);
+        const userFile = file;
         setFile(null);
-        toast.success(file.name);
+
+
+        try {
+
+            const result = await axios.put(
+                `${process.env.NEXT_PUBLIC_URL}/message/sendFile/${user.id}`,
+                {
+                    fileName: userFile.name,
+                    fileSize: userFile.size,
+                    fileType: userFile.type
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-type': 'application/json'
+                    }
+                }
+            );
+
+            console.log("result of sendFIle-->", result.data.url);
+
+            const presignedUrl = result.data.url;
+            const key = result.data.key;
+            // console.log("keyyyyy->",key);
+            // console.log("url->",presignedUrl);
+
+
+            // 2. Upload the file directly to S3 using the presigned URL
+            const uploaded = await axios.put(presignedUrl, userFile, {
+                headers: {
+                    'Content-Type': userFile.type
+                }
+            });
+            if (uploaded.status === 200) {
+                toast.success("File uploaded successfully!");
+
+                let messageType = 'file';
+                if (userFile.type) {
+
+                    if (userFile.type.startsWith('image/')) {
+                        messageType = 'image';
+                    } else if (userFile.type.startsWith('application/')) {
+                        messageType = 'file';
+                    }
+                }
+
+
+                let msg = {
+                    content: key,
+                    chatId: user.id,
+                    sender: {
+                        email: session.user?.email,
+                        name: session.user?.name
+                    },
+                    messageType: messageType,
+                    fileName: userFile.name,
+                    fileSize: userFile.size,
+                    mimeType: userFile.type,
+                }
+                // console.log("Session------>",session.user);
+                socket.emit('new message', msg);
+            }
+            else {
+                throw new Error("Error occurred to upload in s3");
+            }
+
+        }
+        catch (err) {
+            console.log("Error to send file :", err);
+            toast.error("Error to send file");
+        }
+
+    }
+
+    async function getFile(key) {
+
+        try {
+            const result = await axios.get(`${process.env.NEXT_PUBLIC_URL}/message/getFile`, { key: key }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-type': 'application/json'
+                }
+            });
+            console.log("get FIle url ::::->", result);
+            return result.url;
+        }
+        catch (err) {
+            console.log("Failed to get image");
+        }
     }
 
 
@@ -345,12 +441,13 @@ function ChatPage() {
         socket.on('message received', async (newMessage) => {
             // console.log("newMessage.chat._id------------------------>", newMessage.chat._id)
             // console.log("selectedChatCompare.id------------------------>", selectedChatCompare.id)
-
+            console.log("recvd msg ----->",newMessage);
             if (!selectedChatCompare || selectedChatCompare.id !== newMessage.message.chatId) {
                 // send notification
                 // console.log("Notification: New message received");
             } else {
                 // setMessages((prevMessages) => [...prevMessages, newMessage.message]);
+             
                 const encrypted = JSON.parse(newMessage.message.content);
 
                 // 2. Derive key from chatId and salt (you need access to salt!)
@@ -361,6 +458,8 @@ function ChatPage() {
 
                 // 4. Replace encrypted content with decrypted
                 newMessage.message.content = decrypted;
+                
+                
                 setMessages((prevMessages) => {
                     const isOptimistic = prevMessages.some(msg => msg.optimistic && msg.content === newMessage.message.content);
                     if (isOptimistic) {
@@ -486,6 +585,7 @@ function ChatPage() {
 
     }
 
+    console.log("messages------->", messages);
 
     return (
         <>
@@ -534,13 +634,8 @@ function ChatPage() {
 
                                             item.messageType === 'image' ?
 
-                                                <div>
-                                                    <img
-                                                        src={item.fileLink}
-                                                        alt="preview"
-                                                        className="w-40 h-fit rounded shadow-md"
-                                                    />
-                                                </div>
+                                                <ImageMessage item={item} token={token} />
+
 
                                                 :
 
@@ -557,8 +652,11 @@ function ChatPage() {
                                                             <>
                                                                 {
                                                                     item?.optimistic === true ?
+                                                                    <div className='flex gap-2'>
 
+                                                                    <p className='text-myblack text-[10px]'>{formatTime(item?.createdAt)}</p>
                                                                         <TbClockUp className='text-myblack text-sm' />
+                                                                        </div>
 
                                                                         :
                                                                         <div className='flex gap-2'>
