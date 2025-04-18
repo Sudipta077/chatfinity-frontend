@@ -46,7 +46,7 @@ function ProfileModal({ toggleShow, profile }) {
 
 
     const addable = totalUsers.filter((item) => !memberIds.includes(getsender(item, session.user?.id)?._id) && !item.isGroupChat)
-    // console.log("addable--->", addable);
+    console.log("addable--->", addable);
     const handleEdit = async (e) => {
         e.preventDefault();
         if (!session.user.token)
@@ -249,7 +249,7 @@ function ProfileModal({ toggleShow, profile }) {
 
                         <div className="mt-2 relative inline-flex items-center px-3 py-2 bg-myyellow rounded-l-md w-full">
                             <select
-                                className="bg-myyellow appearance-none focus:outline-none text-sm text-textcolor w-full px-2"
+                                className="bg-myyellow appearance-none focus:outline-none text-sm text-myblack w-full px-2"
                                 name="members"
                                 id="members"
                                 onChange={(e) => {
@@ -260,18 +260,18 @@ function ProfileModal({ toggleShow, profile }) {
                                 }}
 
                             >
-                                <option value="" className='text-myblack px-2'>Select a user</option>
+                                <option value="">Select a user</option>
 
                                 {addable && addable.map((item, key) =>
 
 
                                 (
-                                    <option key={key} value={getsender(item, session.user)?._id} className='text-textcolor px-2'>
+                                    <option key={key} value={getsender(item, session.user)?.user?._id} className='text-myblack px-2'>
                                         <>
-                                            {getsender(item, session.user)?.name}
-                                            {getsender(item, session.user)?.email}
+                                            {getsender(item, session.user)?.user?.name}
+                                            {/* {getsender(item, session.user)?.user?.email} */}
 
-                                            {/* <Image src={getsender(item, session.user)?.picture} width={50} height={50} alt='user' /> */}
+                                            {/* <img src={getsender(item, session.user)?.user?.picture} width={100} height={100} alt='user' className='w-12 h-12' /> */}
                                         </>
                                     </option>
                                 ))}

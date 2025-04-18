@@ -35,7 +35,7 @@ function Header(props) {
 
 
 				{
-					session && status === 'authenticated' ?
+					session && status === 'authenticated' && session?.user?.pic ?
 						<Image src={session?.user?.pic} width={40} height={40} alt="User image" className="rounded-full"></Image>
 						:
 						<LoadingModal />

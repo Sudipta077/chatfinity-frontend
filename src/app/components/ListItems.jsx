@@ -20,7 +20,8 @@ function ListItems({ item, token, loggedUser }) {
     const handleChat = async (item) => {
         // console.log("sender---.",item);
         try {
-            const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat`, { userId: item.user? item?.user?._id:item._id }, {
+            const isGroupChat = item?.isGroupChat ?? false;
+            const result = await axios.post(`${process.env.NEXT_PUBLIC_URL}/chat`, { userId: item.user? item?.user?._id:item._id,isGroupChat:isGroupChat }, {
                 headers: {
                     'Content-type': 'application/json',
                     Authorization: `Bearer ${token}`
@@ -94,7 +95,7 @@ function ListItems({ item, token, loggedUser }) {
     return (
         <div className="group border-b hover:bg-myyellow border-b-background text-center h-16 flex items-center px-2 hover:cursor-pointer" onClick={() => handleChat(sender!=null ? sender : item)}>
             <div className='rounded-full' width={50} height={50}>
-                <Image src={item.users ? (item.isGroupChat ? item.picture : sender?.user?.picture) : item.picture} alt="User Avatar" width={50} height={50} className="rounded-full" />
+                <Image src={item.users ? ((item.isGroupChat ? item.picture : sender?.user?.picture) || '/ai.png') : item.picture} alt="User Avatar" width={50} height={50} className="rounded-full" />
             </div>
 
             <div className='w-[60%] text-left m-auto'>

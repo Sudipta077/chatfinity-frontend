@@ -16,6 +16,7 @@ import { io } from 'socket.io-client';
 import { TfiClip } from "react-icons/tfi";
 import { IoMdClose } from "react-icons/io";
 import ImageMessage from './ImageMessage.jsx';
+import LoadingModal from './Loading.jsx';
 const ENDPOINT = 'http://localhost:8080';
 let socket, selectedChatCompare;
 
@@ -48,7 +49,7 @@ function ChatPage() {
     }, [messages, istyping]);
 
 
-    console.log("selected file ----->", file);
+    // console.log("selected file ----->", file);
 
     async function fetchMessages() {
         if (isAiChat) return setMessages([]);
@@ -70,22 +71,19 @@ function ChatPage() {
 
             const decryptedMessages = await Promise.all(
                 encryptedMessages.map(async (msg) => {
-                    if (msg.messageType === 'text') {
-                        try {
-                            const parsed = JSON.parse(msg.content);
-                            const decrypted = await decryptMessage(parsed, key);
-                            return {
-                                ...msg,
-                                content: decrypted,
-                            };
-                        } catch (e) {
-                            console.error("Failed to decrypt message:", e);
-                            return msg;
-                        }
-                    } else {
-                        // For files/images, just return as is
+
+                    try {
+                        const parsed = JSON.parse(msg.content);
+                        const decrypted = await decryptMessage(parsed, key);
+                        return {
+                            ...msg,
+                            content: decrypted,
+                        };
+                    } catch (e) {
+                        console.error("Failed to decrypt message:", e);
                         return msg;
                     }
+
                 })
             );
 
@@ -238,7 +236,7 @@ function ChatPage() {
                 // });
 
                 // 3. Emit real message to socket
-                
+
                 const key = await deriveKey(user.id, user.salt);
                 const encrypted = await encryptMessage(messageToSend, key);
 
@@ -251,7 +249,7 @@ function ChatPage() {
                         email: session.user?.email,
                         name: session.user?.name
                     },
-                    createdAt:Date.now()
+                    createdAt: Date.now()
                 }
                 // console.log("Session------>",session.user);
 
@@ -275,24 +273,7 @@ function ChatPage() {
 
     async function sendFile(e) {
         e.preventDefault();
-        const tempId = `temp-${Date.now()}`;
-        const optimisticMsg = {
-            _id: tempId,
-            content: '',
-            sender: {
-                name: session?.user?.name,
-                email: session?.user?.email,
-                picture: session?.user?.image,
-            },
-            messageType: 'image',
-            key: imagePreview,
-            createdAt: Date.now(),
-            optimistic: true, // mark this one
 
-        };
-
-        // 1. Show the message immediately
-        setMessages((prev) => [...prev, optimisticMsg]);
         const userFile = file;
         setFile(null);
 
@@ -314,12 +295,41 @@ function ChatPage() {
                 }
             );
 
-            console.log("result of sendFIle-->", result.data.url);
+            // console.log("result of sendFIle-->", result.data.url);
 
             const presignedUrl = result.data.url;
-            const key = result.data.key;
-            // console.log("keyyyyy->",key);
+            const s3key = result.data.key;
+            // console.log("keyyyyy opti->", s3key);
             // console.log("url->",presignedUrl);
+
+
+            const tempId = `temp-${Date.now()}`;
+            const optimisticMsg = {
+                _id: tempId,
+                content: s3key,
+                sender: {
+                    name: session?.user?.name,
+                    email: session?.user?.email,
+                    picture: session?.user?.image,
+                },
+                messageType: 'image',
+                key: imagePreview,
+                createdAt: Date.now(),
+                optimistic: true,
+                loading: true,
+
+            };
+
+            // 1. Show the message immediately
+            setMessages((prev) => [...prev, optimisticMsg]);
+
+            // setMessages((prevMessages) =>
+            //     prevMessages.map(msg =>
+            //         msg.optimistic && msg.content === ''
+            //             ? { ...msg, content: s3key }
+            //             : msg
+            //     )
+            // );
 
 
             // 2. Upload the file directly to S3 using the presigned URL
@@ -329,7 +339,7 @@ function ChatPage() {
                 }
             });
             if (uploaded.status === 200) {
-                toast.success("File uploaded successfully!");
+                // toast.success("File uploaded successfully!");
 
                 let messageType = 'file';
                 if (userFile.type) {
@@ -341,9 +351,12 @@ function ChatPage() {
                     }
                 }
 
+                const key = await deriveKey(user.id, user.salt);
+                const encrypted = await encryptMessage(s3key, key);
+
 
                 let msg = {
-                    content: key,
+                    content: JSON.stringify(encrypted),
                     chatId: user.id,
                     sender: {
                         email: session.user?.email,
@@ -378,7 +391,7 @@ function ChatPage() {
                     'Content-type': 'application/json'
                 }
             });
-            console.log("get FIle url ::::->", result);
+            // console.log("get FIle url ::::->", result);
             return result.url;
         }
         catch (err) {
@@ -441,13 +454,13 @@ function ChatPage() {
         socket.on('message received', async (newMessage) => {
             // console.log("newMessage.chat._id------------------------>", newMessage.chat._id)
             // console.log("selectedChatCompare.id------------------------>", selectedChatCompare.id)
-            console.log("recvd msg ----->",newMessage);
+            // console.log("recvd msg ----->", newMessage);
             if (!selectedChatCompare || selectedChatCompare.id !== newMessage.message.chatId) {
                 // send notification
                 // console.log("Notification: New message received");
             } else {
                 // setMessages((prevMessages) => [...prevMessages, newMessage.message]);
-             
+
                 const encrypted = JSON.parse(newMessage.message.content);
 
                 // 2. Derive key from chatId and salt (you need access to salt!)
@@ -458,8 +471,9 @@ function ChatPage() {
 
                 // 4. Replace encrypted content with decrypted
                 newMessage.message.content = decrypted;
-                
-                
+                // console.log("keyyyyy on rcv->", newMessage.message.content);
+
+
                 setMessages((prevMessages) => {
                     const isOptimistic = prevMessages.some(msg => msg.optimistic && msg.content === newMessage.message.content);
                     if (isOptimistic) {
@@ -585,7 +599,7 @@ function ChatPage() {
 
     }
 
-    console.log("messages------->", messages);
+    // console.log("messages------->", messages);
 
     return (
         <>
@@ -634,7 +648,25 @@ function ChatPage() {
 
                                             item.messageType === 'image' ?
 
-                                                <ImageMessage item={item} token={token} />
+                                                item.loading === true ?
+                                                    <div className="relative w-40 h-40">
+                                                        {/* The image itself */}
+                                                        <Image
+                                                            src={imagePreview}
+                                                            width={160}
+                                                            height={160}
+                                                            className="w-40 h-40 object-cover rounded-md"
+                                                            alt="Uploading..."
+                                                        />
+
+                                                        {/* Overlay loader */}
+                                                        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center rounded-md">
+                                                            <div className="animate-spin h-10 w-10 border-t-4 border-yellow-400 border-solid rounded-full"></div>
+                                                        </div>
+                                                    </div>
+
+                                                    :
+                                                    <ImageMessage item={item} token={token} />
 
 
                                                 :
@@ -646,16 +678,16 @@ function ChatPage() {
                                                         } shadow-lg`}
                                                 >
                                                     <p className="text-myblack">{item.content}</p>
-                                                    <p className="text-[10px] text-gray-400">
+                                                    <div className="text-[10px] text-gray-400">
                                                         {isSameSender(session.user.email, item.sender?.email)
                                                             ?
                                                             <>
                                                                 {
                                                                     item?.optimistic === true ?
-                                                                    <div className='flex gap-2'>
+                                                                        <div className='flex gap-2'>
 
-                                                                    <p className='text-myblack text-[10px]'>{formatTime(item?.createdAt)}</p>
-                                                                        <TbClockUp className='text-myblack text-sm' />
+                                                                            <p className='text-myblack text-[10px]'>{formatTime(item?.createdAt)}</p>
+                                                                            <TbClockUp className='text-myblack text-sm' />
                                                                         </div>
 
                                                                         :
@@ -674,7 +706,7 @@ function ChatPage() {
                                                             // </div>
 
                                                         }
-                                                    </p>
+                                                    </div>
                                                 </div>
                                         }
                                     </div>
